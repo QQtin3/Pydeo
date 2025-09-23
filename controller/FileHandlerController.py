@@ -10,6 +10,10 @@ def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
 
     Returns:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
+        
+    Raises:
+        FileNotFoundError: The specified location is not an existing file
+        UnhandledFileFormatException: The specified file extension is not supported
     """
     if not os.path.isfile(path):
         raise FileNotFoundError("Given path is not a file")
@@ -30,6 +34,10 @@ def readAudioFile(path: str) -> AudioClip:
 
     Returns:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
+        
+    Raises:
+        FileNotFoundError: The specified location is not an existing file
+        UnhandledFileFormatException: The specified file extension is not supported
     """
     if not os.path.isfile(path):
         raise FileNotFoundError("Given path is not a file")
@@ -49,6 +57,10 @@ def readImageFile(path: str) -> ImageClip:
 
     Returns:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
+        
+    Raises:
+        FileNotFoundError: The specified location is not an existing file
+        UnhandledFileFormatException: The specified file extension is not supported
     """
     if not os.path.isfile(path):
         raise FileNotFoundError("Given path is not a file")
