@@ -25,6 +25,7 @@ def addingText(video: VideoClip, duration: int, text: str, position: str = 'cent
     constraintPositiveNumber(fontsize)
     constraintNotEmptyText(text)
     constraintNotEmptyText(position)
+    constraintNotEmptyText(color)
     
     txtClip = TextClip(text=text, font_size=fontsize, color=color)
     txtClip = txtClip.with_position(position).with_duration(duration)
