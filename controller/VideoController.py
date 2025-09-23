@@ -3,7 +3,7 @@ from moviepy import VideoClip, TextClip, CompositeVideoClip
 from controller.utils.VarConstraintChecker import constraintPositiveNumber, constraintNotEmptyText
 
 
-def cutVideo(video: VideoClip, cuttingTime: int, position='B'):
+def cutVideo(video: VideoClip, cuttingTime: int, position='B') -> VideoClip:
     """Allow to cut a video with a specified cuttingTime"""
     videoDuration = video.duration
     if videoDuration <= cuttingTime:
@@ -18,8 +18,8 @@ def cutVideo(video: VideoClip, cuttingTime: int, position='B'):
             raise Exception('Cutting position', position, 'is not valid.')
 
 
-def addingText(video: VideoClip, duration: int, text: str, position: str = 'center', fontsize: int = '16',
-               color: str = 'black'):
+def addingText(video: VideoClip, duration: int, text: str, position: str = 'center', fontsize: int = 16,
+               color: str = 'black') -> VideoClip:
     
     constraintPositiveNumber(duration)
     constraintPositiveNumber(fontsize)
