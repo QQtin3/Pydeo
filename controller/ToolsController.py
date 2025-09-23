@@ -1,4 +1,6 @@
-from moviepy import VideoClip, TextClip
+from moviepy import VideoClip, TextClip, CompositeVideoClip
+
+from controller.utils.VarConstraintChecker import constraintPositiveNumber, constraintNotEmptyText
 
 
 def cutVideo(video: VideoClip, cuttingTime: int, position='B'):
@@ -18,10 +20,14 @@ def cutVideo(video: VideoClip, cuttingTime: int, position='B'):
 
 def addingText(video: VideoClip, duration: int, text: str, position: str = 'center', fontsize: int = '16',
                color: str = 'black'):
-    txtClip = TextClip(text=text, font_size=fontsize, color="white")
     
-    # Say that you want it to appear for 10s at the center of the screen
-    txt_clip = txt_clip.with_position("center").with_duration(10)
+    constraintPositiveNumber(duration)
+    constraintPositiveNumber(fontsize)
+    constraintNotEmptyText(text)
+    constraintNotEmptyText(position)
+    
+    txtClip = TextClip(text=text, font_size=fontsize, color=color)
+    txtClip = txtClip.with_position(position).with_duration(duration)
     
     # Overlay the text clip on the first video clip
-    video = CompositeVideoClip([clip, txt_clip])
+    return CompositeVideoClip([video, txtClip])

@@ -13,4 +13,4 @@ def constraintPositiveNumberInclusive(number: int):
 def constraintNotEmptyText(text: str):
 	if len(text.strip()) == 0:
 		raise ConstraintException('Text cannot be empty.')
-	
+
