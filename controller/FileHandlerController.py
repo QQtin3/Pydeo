@@ -1,4 +1,4 @@
-from moviepy import VideoClip, VideoFileClip, AudioClip, AudioFileClip
+from moviepy import VideoClip, VideoFileClip, AudioClip, AudioFileClip, ImageClip
 import os
 
 def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
@@ -39,3 +39,21 @@ def readAudioFile(path: str) -> AudioClip:
     audio = AudioFileClip(path)
     
     return audio
+
+def readImageFile(path: str) -> ImageClip:
+    """Open an image file and return ImageClip object
+
+    Args:
+        path (str): the path of the file. Supported formats are .jpg, .png, .gif, .bmp and .tiff
+
+    Returns:
+        tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
+    """
+    if not os.path.isfile(path):
+        raise Exception("Given path is not a file")
+    
+    if os.path.splitext(path)[1] not in [".jpg", ".png", ".gif", ".bmp", ".tiff"]:
+        raise Exception("Wrong video file format. Supported formats are .jpg, .png, .gif, .bmp and .tiff")
+    
+    image = ImageClip(path)
+    return image
