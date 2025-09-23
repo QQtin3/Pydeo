@@ -10,6 +10,9 @@ def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
     Returns:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
     """
+    if not os.path.isfile(path):
+        raise Exception("Given path is not a file")
+    
     if os.path.splitext(path)[1] not in [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".webm"]:
         raise Exception("Wrong video file format. Supported formats are .mp4, .avi, .mkv, .mov, .flv, .wmv and .webm")
     
@@ -19,14 +22,17 @@ def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
     return clip, audio
 
 def readAudioFile(path: str) -> AudioClip:
-    """Open an audio file and AudioClip objects
+    """Open an audio file and return AudioClip object
 
     Args:
-        path (str): the path of the file. Supported formats are .mp3, .wav, .aac, .ogg, .flac, .opus.
+        path (str): the path of the file. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus.
 
     Returns:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
     """
+    if not os.path.isfile(path):
+        raise Exception("Given path is not a file")
+    
     if os.path.splitext(path)[1] not in [".mp3", ".wav", ".aac", ".ogg", ".flac", ".opus"]:
         raise Exception("Wrong video file format. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus")
     
