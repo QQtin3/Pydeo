@@ -1,4 +1,4 @@
-from moviepy import VideoClip, VideoFileClip, AudioClip, AudioFileClip, ImageClip
+from moviepy import CompositeVideoClip, VideoClip, VideoFileClip, AudioClip, AudioFileClip, ImageClip
 from utils.Exceptions import UnhandledFileFormatException
 import os
 
@@ -58,3 +58,22 @@ def readImageFile(path: str) -> ImageClip:
     
     image = ImageClip(path)
     return image
+
+def exportVideo(clips: CompositeVideoClip, path: str) -> None:
+    """Export Composite clip to video file at the specified location
+
+    Args:
+        clips (CompositeVideoClip): The array of clips
+        path (str): The path of the file to export
+
+    Raises:
+        FileExistsError: The specified location is already an existing file
+        UnhandledFileFormatException: The specified file extension is not supported
+    """
+    if not os.path.isfile(path):
+        raise FileExistsError("File already exists")
+    
+    if os.path.splitext(path)[1] not in [".mp3", ".wav", ".aac", ".ogg", ".flac", ".opus"]:
+        raise UnhandledFileFormatException("Wrong video file format. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus")
+    
+    clips.write_videofile(path)
