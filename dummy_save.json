@@ -1,0 +1,56 @@
+{
+    "assets": [
+        "/path/to/file.mp4",
+        "/path/to/anotherfile.mp4",
+        "/path/to/an_audio_file.mp3"
+    ],
+    "tracks": [
+        {
+            "name": "Piste Video 1",
+            "type": "video",
+            "elems": [
+                {
+                    "time": 5678,
+                    "asset": 0,
+                    "effects": [],
+                    "start_at": 56,
+                    "end_at": 89
+                }
+            ]
+        },
+        {
+            "name": "Piste Audio 1",
+            "type": "audio",
+            "elems": [
+                {
+                    "time": 5678,
+                    "asset": 2,
+                    "effects": [
+                        {
+                            "name": "volume",
+                            "config": {
+                                "volume": 30
+                            }
+                        }
+                    ],
+                    "start_at": 57,
+                    "end_at": 29
+                },
+                {
+                    "time": 556898,
+                    "asset": 1,
+                    "effects": [
+                        {
+                            "name": "reverb",
+                            "config": {
+                                "force": 5
+                            }
+                        }
+                    ],
+                    "start_at": 0,
+                    "end_at": 5678
+                }
+            ]
+        }
+    ]
+}
