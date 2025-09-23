@@ -1,4 +1,5 @@
 from moviepy import VideoClip, VideoFileClip, AudioClip, AudioFileClip, ImageClip
+from utils.Exceptions import UnhandledFileFormatException
 import os
 
 def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
@@ -11,10 +12,10 @@ def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
     """
     if not os.path.isfile(path):
-        raise Exception("Given path is not a file")
+        raise FileNotFoundError("Given path is not a file")
     
     if os.path.splitext(path)[1] not in [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".webm"]:
-        raise Exception("Wrong video file format. Supported formats are .mp4, .avi, .mkv, .mov, .flv, .wmv and .webm")
+        raise UnhandledFileFormatException("Wrong video file format. Supported formats are .mp4, .avi, .mkv, .mov, .flv, .wmv and .webm")
     
     clip = VideoFileClip(path)
     audio = clip.audio
@@ -31,10 +32,10 @@ def readAudioFile(path: str) -> AudioClip:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
     """
     if not os.path.isfile(path):
-        raise Exception("Given path is not a file")
+        raise FileNotFoundError("Given path is not a file")
     
     if os.path.splitext(path)[1] not in [".mp3", ".wav", ".aac", ".ogg", ".flac", ".opus"]:
-        raise Exception("Wrong video file format. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus")
+        raise UnhandledFileFormatException("Wrong video file format. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus")
     
     audio = AudioFileClip(path)
     
@@ -50,10 +51,10 @@ def readImageFile(path: str) -> ImageClip:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
     """
     if not os.path.isfile(path):
-        raise Exception("Given path is not a file")
+        raise FileNotFoundError("Given path is not a file")
     
     if os.path.splitext(path)[1] not in [".jpg", ".png", ".gif", ".bmp", ".tiff"]:
-        raise Exception("Wrong video file format. Supported formats are .jpg, .png, .gif, .bmp and .tiff")
+        raise UnhandledFileFormatException("Wrong video file format. Supported formats are .jpg, .png, .gif, .bmp and .tiff")
     
     image = ImageClip(path)
     return image
