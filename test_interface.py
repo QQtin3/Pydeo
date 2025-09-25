@@ -183,9 +183,6 @@ class VideoEditor(QMainWindow):
         main_layout.setContentsMargins(5, 5, 5, 5)
         main_layout.setSpacing(5)
         
-        # Create toolbar with editing tools
-        self.create_toolbar()
-        
         # Create splitter for main content (left: preview, right: tracks)
         main_splitter = QSplitter(Qt.Horizontal)
         
@@ -244,6 +241,8 @@ class VideoEditor(QMainWindow):
         
         main_splitter.addWidget(right_widget)
         main_splitter.setSizes([800, 400])  # Initial sizes
+
+        self.create_toolbar(preview_layout)
         
         # Timeline area
         self.timeline = TimelineWidget()
@@ -263,58 +262,96 @@ class VideoEditor(QMainWindow):
         self.play_timer.timeout.connect(self.update_playback)
         self.is_playing = False
         
-    def create_toolbar(self):
+    def create_toolbar(self, layout):
         """Create the top toolbar with editing tools"""
-        toolbar = QToolBar("Tools")
-        toolbar.setIconSize(QSize(24, 24))
+        """Create the toolbar to be placed under the video preview"""
+        toolbar_widget = QWidget()
+        toolbar_widget.setStyleSheet("background-color: #3a3a3a; border-top: 1px solid #555; border-bottom: 1px solid #555;")
+        toolbar_layout = QHBoxLayout(toolbar_widget)
+        toolbar_layout.setContentsMargins(5, 2, 5, 2)
+        toolbar_layout.setSpacing(8)
         
         # Undo/Redo
-        undo_action = QAction("↩", self)
-        undo_action.setToolTip("Annuler (Ctrl+Z)")
-        undo_action.triggered.connect(self.undo)
-        toolbar.addAction(undo_action)
+        undo_btn = QToolButton()
+        undo_btn.setText("↩")
+        undo_btn.setToolTip("Annuler (Ctrl+Z)")
+        undo_btn.setFixedSize(24, 24)
+        undo_btn.clicked.connect(self.undo)
+        toolbar_layout.addWidget(undo_btn)
         
-        redo_action = QAction("↪", self)
-        redo_action.setToolTip("Refaire (Ctrl+Y)")
-        redo_action.triggered.connect(self.redo)
-        toolbar.addAction(redo_action)
+        redo_btn = QToolButton()
+        redo_btn.setText("↪")
+        redo_btn.setToolTip("Refaire (Ctrl+Y)")
+        redo_btn.setFixedSize(24, 24)
+        redo_btn.clicked.connect(self.redo)
+        toolbar_layout.addWidget(redo_btn)
         
-        toolbar.addSeparator()
+        toolbar_layout.addSpacing(15)
         
-        # Editing tools
-        move_action = QAction("⤢", self)
-        move_action.setToolTip("Déplacer")
-        move_action.setCheckable(True)
-        move_action.setChecked(True)
-        toolbar.addAction(move_action)
+        # Editing tools (as checkable buttons)
+        self.move_btn = QToolButton()
+        self.move_btn.setCheckable(True)
+        self.move_btn.setChecked(True)
+        self.move_btn.setText("⤢")
+        self.move_btn.setToolTip("Déplacer")
+        self.move_btn.setFixedSize(24, 24)
+        self.move_btn.clicked.connect(lambda: self.set_tool_mode('move'))
+        toolbar_layout.addWidget(self.move_btn)
         
-        cut_action = QAction("✂", self)
-        cut_action.setToolTip("Couper")
-        cut_action.setCheckable(True)
-        toolbar.addAction(cut_action)
+        self.cut_btn = QToolButton()
+        self.cut_btn.setCheckable(True)
+        self.cut_btn.setText("✂")
+        self.cut_btn.setToolTip("Couper")
+        self.cut_btn.setFixedSize(24, 24)
+        self.cut_btn.clicked.connect(lambda: self.set_tool_mode('cut'))
+        toolbar_layout.addWidget(self.cut_btn)
         
-        split_action = QAction("⌬", self)
-        split_action.setToolTip("Scinder")
-        split_action.setCheckable(True)
-        toolbar.addAction(split_action)
+        self.split_btn = QToolButton()
+        self.split_btn.setCheckable(True)
+        self.split_btn.setText("⌬")
+        self.split_btn.setToolTip("Scinder")
+        self.split_btn.setFixedSize(24, 24)
+        self.split_btn.clicked.connect(lambda: self.set_tool_mode('split'))
+        toolbar_layout.addWidget(self.split_btn)
         
-        select_action = QAction("☐", self)
-        select_action.setToolTip("Sélectionner")
-        select_action.setCheckable(True)
-        toolbar.addAction(select_action)
+        self.select_btn = QToolButton()
+        self.select_btn.setCheckable(True)
+        self.select_btn.setText("☐")
+        self.select_btn.setToolTip("Sélectionner")
+        self.select_btn.setFixedSize(24, 24)
+        self.select_btn.clicked.connect(lambda: self.set_tool_mode('select'))
+        toolbar_layout.addWidget(self.select_btn)
         
-        toolbar.addSeparator()
+        toolbar_layout.addSpacing(15)
         
         # Zoom controls
-        zoom_in_action = QAction("+", self)
-        zoom_in_action.setToolTip("Zoom avant")
-        toolbar.addAction(zoom_in_action)
+        zoom_in_btn = QToolButton()
+        zoom_in_btn.setText("+")
+        zoom_in_btn.setToolTip("Zoom avant")
+        zoom_in_btn.setFixedSize(24, 24)
+        zoom_in_btn.clicked.connect(self.zoom_in)
+        toolbar_layout.addWidget(zoom_in_btn)
         
-        zoom_out_action = QAction("-", self)
-        zoom_out_action.setToolTip("Zoom arrière")
-        toolbar.addAction(zoom_out_action)
+        zoom_out_btn = QToolButton()
+        zoom_out_btn.setText("-")
+        zoom_out_btn.setToolTip("Zoom arrière")
+        zoom_out_btn.setFixedSize(24, 24)
+        zoom_out_btn.clicked.connect(self.zoom_out)
+        toolbar_layout.addWidget(zoom_out_btn)
         
-        self.addToolBar(toolbar)
+        toolbar_layout.addStretch()
+        
+        # Add the toolbar to the provided layout (under video preview)
+        layout.addWidget(toolbar_widget)
+
+    def zoom_in(self):
+        """Handle zoom in action"""
+        self.status_label.setText("État: Zoom avant")
+        # In a real implementation, this would zoom in the timeline
+    
+    def zoom_out(self):
+        """Handle zoom out action"""
+        self.status_label.setText("État: Zoom arrière")
     
     def import_video(self):
         file_path, _ = QFileDialog.getOpenFileName(
