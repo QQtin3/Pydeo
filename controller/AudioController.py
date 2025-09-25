@@ -1,7 +1,7 @@
 from moviepy import VideoClip
 from moviepy.Clip import Clip
 
-from controller.utils.VarConstraintChecker import constraintPourcentageNumber
+from .utils.VarConstraintChecker import constraintPourcentageNumber
 
 
 def changeAudioVolume(video: VideoClip, volume: float) -> Clip:

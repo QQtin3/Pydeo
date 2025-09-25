@@ -1,6 +1,6 @@
 from moviepy import VideoClip, TextClip, CompositeVideoClip
 
-from controller.utils.VarConstraintChecker import constraintPositiveNumber, constraintNotEmptyText
+from .utils.VarConstraintChecker import constraintPositiveNumber, constraintNotEmptyText
 
 
 def cutVideo(video: VideoClip, cuttingTime: int, position='B') -> VideoClip:

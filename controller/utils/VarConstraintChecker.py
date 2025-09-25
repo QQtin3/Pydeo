@@ -1,4 +1,4 @@
-from Exceptions import ConstraintException
+from .Exceptions import ConstraintException
 
 
 ####### NUMBERS #######

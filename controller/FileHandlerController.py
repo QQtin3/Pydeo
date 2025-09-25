@@ -1,15 +1,15 @@
 from moviepy import CompositeVideoClip, VideoClip, VideoFileClip, AudioClip, AudioFileClip, ImageClip
-from utils.Exceptions import UnhandledFileFormatException
+from .utils.Exceptions import UnhandledFileFormatException
 import os
 
-def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
+def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None, int]:
     """Open a video file and return VideoClip and AudioClip objects (if audio is available in the video file)
 
     Args:
         path (str): the path of the file. Supported formats are .mp4, .avi, .mkv, .mov, .flv, .wmv and .webm.
 
     Returns:
-        tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
+        tuple[VideoClip, AudioClip | None, int]: Clips and framerate extracted from the given file
         
     Raises:
         FileNotFoundError: The specified location is not an existing file
@@ -24,7 +24,7 @@ def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None]:
     clip = VideoFileClip(path)
     audio = clip.audio
     
-    return clip, audio
+    return clip, audio, clip.fps
 
 def readAudioFile(path: str) -> AudioClip:
     """Open an audio file and return AudioClip object
