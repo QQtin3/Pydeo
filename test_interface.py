@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                               QPushButton, QFileDialog, QLabel, QSpinBox, QDoubleSpinBox,
                               QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
                               QToolBar, QToolButton, QSplitter, QScrollArea, QFrame, QSlider,
-                              QDialog, QSizePolicy)
+                              QDialog, QSizePolicy, QTabWidget)
 from PySide6.QtCore import Qt, QSize, QRectF, QTimer
 from PySide6.QtGui import QAction, QIcon, QPainter, QBrush, QPen, QColor
 from moviepy.video.io.VideoFileClip import VideoFileClip
@@ -123,6 +123,43 @@ class TimelineWidget(QWidget):
             painter.setBrush(QBrush(QColor(255, 0, 0)))
             painter.drawRect(x - 5, 0, 10, 20)
 
+class EffectsTab(QWidget):
+    """Tab for video effects"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Add some placeholder effect controls
+        effects_label = QLabel("Liste des effets disponibles:")
+        effects_label.setStyleSheet("font-weight: bold; color: #ccc;")
+        layout.addWidget(effects_label)
+        
+        # Add some example effects
+        effects = [
+            "Fondu", "Dissolution", "Zoom", "Rotation", 
+            "N&B", "Contraste", "Luminosité", "Saturation"
+        ]
+        
+        for effect in effects:
+            btn = QPushButton(effect)
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #4a4a4a;
+                    border: 1px solid #5a5a5a;
+                    border-radius: 4px;
+                    padding: 5px;
+                    margin: 2px 0;
+                }
+                QPushButton:hover {
+                    background-color: #5a5a5a;
+                }
+            """)
+            layout.addWidget(btn)
+        
+        layout.addStretch()
+        self.setLayout(layout)
+
 
 class ClipDialog(QDialog):
     def __init__(self, parent=None):
@@ -217,18 +254,56 @@ class VideoEditor(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         
         # Track list area with scroll
+        # === Create tabs for Sources and Effects ===
+        self.tabs = QTabWidget()
+        self.tabs.setTabBarAutoHide(False)
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #555;
+                background: #333;
+            }
+            QTabBar {
+                background: #444;
+            }
+            QTabBar::tab {
+                background: #555;
+                border: 1px solid #444;
+                padding: 5px 10px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background: #666;
+                border-bottom-color: #333;
+            }
+            QTabBar::tab:hover {
+                background: #606060;
+            }
+        """)
+        
+        # Sources tab
+        sources_tab = QWidget()
+        sources_layout = QVBoxLayout(sources_tab)
+        sources_layout.setContentsMargins(5, 5, 5, 5)
+
         tracks_scroll = QScrollArea()
         tracks_scroll.setWidgetResizable(True)
         self.tracks_container = QWidget()
         self.tracks_layout = QVBoxLayout(self.tracks_container)
         self.tracks_layout.addStretch()
         tracks_scroll.setWidget(self.tracks_container)
-        
-        right_layout.addWidget(QLabel("Pistes vidéo:", styleSheet="font-weight: bold; padding: 5px;"))
-        right_layout.addWidget(tracks_scroll)
-        
+
+        sources_layout.addWidget(tracks_scroll)
+
         # Track controls
         track_btn_layout = QHBoxLayout()
+
+        self.import_video_btn = QPushButton("Importer une source")
+        self.import_video_btn.clicked.connect(self.import_video)
+        self.import_video_btn.setEnabled(True)
+        track_btn_layout.addWidget(self.import_video_btn)
+
         self.add_track_btn = QPushButton("Ajouter une piste")
         self.add_track_btn.clicked.connect(self.add_track)
         self.add_track_btn.setEnabled(False)
@@ -237,7 +312,18 @@ class VideoEditor(QMainWindow):
         self.remove_track_btn = QPushButton("Supprimer piste")
         self.remove_track_btn.setEnabled(False)
         track_btn_layout.addWidget(self.remove_track_btn)
-        right_layout.addLayout(track_btn_layout)
+        sources_layout.addLayout(track_btn_layout)
+
+        # Effects tab
+        effects_tab = EffectsTab()
+        
+        # Add tabs
+        self.tabs.addTab(sources_tab, "Sources")
+        self.tabs.addTab(effects_tab, "Effets")
+        
+        right_layout.addWidget(self.tabs)
+        main_splitter.addWidget(right_widget)
+        main_splitter.setSizes([800, 400])  # Initial sizes
         
         main_splitter.addWidget(right_widget)
         main_splitter.setSizes([800, 400])  # Initial sizes
@@ -246,6 +332,7 @@ class VideoEditor(QMainWindow):
         
         # Timeline area
         self.timeline = TimelineWidget()
+        self.second_timeline = TimelineWidget()
         
         # Status area
         self.status_label = QLabel("État: Aucune vidéo importée")
@@ -253,6 +340,7 @@ class VideoEditor(QMainWindow):
         # Add everything to main layout
         main_layout.addWidget(main_splitter)
         main_layout.addWidget(self.timeline)
+        main_layout.addWidget(self.second_timeline)
         main_layout.addWidget(self.status_label)
         
         self.setCentralWidget(main_widget)
@@ -262,6 +350,26 @@ class VideoEditor(QMainWindow):
         self.play_timer.timeout.connect(self.update_playback)
         self.is_playing = False
         
+    def set_tool_mode(self, mode):
+        """Set the current editing tool mode"""
+        # Uncheck all tool buttons
+        self.move_btn.setChecked(False)
+        self.cut_btn.setChecked(False)
+        self.split_btn.setChecked(False)
+        self.select_btn.setChecked(False)
+        
+        # Check the selected tool
+        if mode == 'move':
+            self.move_btn.setChecked(True)
+        elif mode == 'cut':
+            self.cut_btn.setChecked(True)
+        elif mode == 'split':
+            self.split_btn.setChecked(True)
+        elif mode == 'select':
+            self.select_btn.setChecked(True)
+        
+        self.current_tool = mode
+        self.status_label.setText(f"État: Mode d'édition: {mode}")
     def create_toolbar(self, layout):
         """Create the top toolbar with editing tools"""
         """Create the toolbar to be placed under the video preview"""
