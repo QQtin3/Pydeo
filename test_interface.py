@@ -9,6 +9,7 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 import sys
 import os
+from styles import PydeoStyles
 
 
 class VideoPreviewWidget(QWidget):
@@ -16,6 +17,7 @@ class VideoPreviewWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(400, 300)
+        self.setObjectName("video_preview")
         self.setStyleSheet("background-color: #000000;")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.current_frame = None
@@ -143,18 +145,6 @@ class EffectsTab(QWidget):
         
         for effect in effects:
             btn = QPushButton(effect)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #4a4a4a;
-                    border: 1px solid #5a5a5a;
-                    border-radius: 4px;
-                    padding: 5px;
-                    margin: 2px 0;
-                }
-                QPushButton:hover {
-                    background-color: #5a5a5a;
-                }
-            """)
             layout.addWidget(btn)
         
         layout.addStretch()
@@ -214,6 +204,9 @@ class VideoEditor(QMainWindow):
         self.clips = []  # Store clip information for timeline
         self.current_play_time = 0
         
+        # Apply styles from external stylesheet
+        self.setStyleSheet(PydeoStyles.get_all_styles())
+        
         # Create main widget and layout
         main_widget = QWidget()
         main_layout = QVBoxLayout(main_widget)
@@ -234,6 +227,7 @@ class VideoEditor(QMainWindow):
         # Transport controls
         transport_layout = QHBoxLayout()
         self.play_btn = QPushButton("▶")
+        self.play_btn.setObjectName("play_button")
         self.play_btn.setFixedSize(30, 30)
         self.play_btn.clicked.connect(self.toggle_play)
         transport_layout.addWidget(self.play_btn)
@@ -257,30 +251,6 @@ class VideoEditor(QMainWindow):
         # === Create tabs for Sources and Effects ===
         self.tabs = QTabWidget()
         self.tabs.setTabBarAutoHide(False)
-        self.tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #555;
-                background: #333;
-            }
-            QTabBar {
-                background: #444;
-            }
-            QTabBar::tab {
-                background: #555;
-                border: 1px solid #444;
-                padding: 5px 10px;
-                margin-right: 2px;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-            }
-            QTabBar::tab:selected {
-                background: #666;
-                border-bottom-color: #333;
-            }
-            QTabBar::tab:hover {
-                background: #606060;
-            }
-        """)
         
         # Sources tab
         sources_tab = QWidget()
@@ -332,7 +302,9 @@ class VideoEditor(QMainWindow):
         
         # Timeline area
         self.timeline = TimelineWidget()
+        self.timeline.setObjectName("timeline")
         self.second_timeline = TimelineWidget()
+        self.second_timeline.setObjectName("timeline")
         
         # Status area
         self.status_label = QLabel("État: Aucune vidéo importée")
@@ -374,7 +346,7 @@ class VideoEditor(QMainWindow):
         """Create the top toolbar with editing tools"""
         """Create the toolbar to be placed under the video preview"""
         toolbar_widget = QWidget()
-        toolbar_widget.setStyleSheet("background-color: #3a3a3a; border-top: 1px solid #555; border-bottom: 1px solid #555;")
+        toolbar_widget.setObjectName("toolbar_widget")
         toolbar_layout = QHBoxLayout(toolbar_widget)
         toolbar_layout.setContentsMargins(5, 2, 5, 2)
         toolbar_layout.setSpacing(8)
@@ -383,14 +355,14 @@ class VideoEditor(QMainWindow):
         undo_btn = QToolButton()
         undo_btn.setText("↩")
         undo_btn.setToolTip("Annuler (Ctrl+Z)")
-        undo_btn.setFixedSize(24, 24)
+        undo_btn.setFixedSize(32, 32)
         undo_btn.clicked.connect(self.undo)
         toolbar_layout.addWidget(undo_btn)
         
         redo_btn = QToolButton()
         redo_btn.setText("↪")
         redo_btn.setToolTip("Refaire (Ctrl+Y)")
-        redo_btn.setFixedSize(24, 24)
+        redo_btn.setFixedSize(32, 32)
         redo_btn.clicked.connect(self.redo)
         toolbar_layout.addWidget(redo_btn)
         
@@ -402,7 +374,7 @@ class VideoEditor(QMainWindow):
         self.move_btn.setChecked(True)
         self.move_btn.setText("⤢")
         self.move_btn.setToolTip("Déplacer")
-        self.move_btn.setFixedSize(24, 24)
+        self.move_btn.setFixedSize(32, 32)
         self.move_btn.clicked.connect(lambda: self.set_tool_mode('move'))
         toolbar_layout.addWidget(self.move_btn)
         
@@ -410,7 +382,7 @@ class VideoEditor(QMainWindow):
         self.cut_btn.setCheckable(True)
         self.cut_btn.setText("✂")
         self.cut_btn.setToolTip("Couper")
-        self.cut_btn.setFixedSize(24, 24)
+        self.cut_btn.setFixedSize(32, 32)
         self.cut_btn.clicked.connect(lambda: self.set_tool_mode('cut'))
         toolbar_layout.addWidget(self.cut_btn)
         
@@ -418,7 +390,7 @@ class VideoEditor(QMainWindow):
         self.split_btn.setCheckable(True)
         self.split_btn.setText("⌬")
         self.split_btn.setToolTip("Scinder")
-        self.split_btn.setFixedSize(24, 24)
+        self.split_btn.setFixedSize(32, 32)
         self.split_btn.clicked.connect(lambda: self.set_tool_mode('split'))
         toolbar_layout.addWidget(self.split_btn)
         
@@ -426,7 +398,7 @@ class VideoEditor(QMainWindow):
         self.select_btn.setCheckable(True)
         self.select_btn.setText("☐")
         self.select_btn.setToolTip("Sélectionner")
-        self.select_btn.setFixedSize(24, 24)
+        self.select_btn.setFixedSize(32, 32)
         self.select_btn.clicked.connect(lambda: self.set_tool_mode('select'))
         toolbar_layout.addWidget(self.select_btn)
         
@@ -436,14 +408,14 @@ class VideoEditor(QMainWindow):
         zoom_in_btn = QToolButton()
         zoom_in_btn.setText("+")
         zoom_in_btn.setToolTip("Zoom avant")
-        zoom_in_btn.setFixedSize(24, 24)
+        zoom_in_btn.setFixedSize(32, 32)
         zoom_in_btn.clicked.connect(self.zoom_in)
         toolbar_layout.addWidget(zoom_in_btn)
         
         zoom_out_btn = QToolButton()
         zoom_out_btn.setText("-")
         zoom_out_btn.setToolTip("Zoom arrière")
-        zoom_out_btn.setFixedSize(24, 24)
+        zoom_out_btn.setFixedSize(32, 32)
         zoom_out_btn.clicked.connect(self.zoom_out)
         toolbar_layout.addWidget(zoom_out_btn)
         
