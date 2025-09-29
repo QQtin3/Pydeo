@@ -46,7 +46,7 @@ echo "   Python utilisé : $("$VENV_DIR/bin/python" --version 2>&1)"
 
 # Exécution de l'application
 echo -e "\n🚀 Démarrage de l'application..."
-exec "$VENV_DIR/bin/python" test_interface.py # A remplacer par main
+exec "$VENV_DIR/bin/python" main.py # A remplacer par main
 """
 python -m venv venv
 source venv/bin/activate

@@ -2,12 +2,13 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                               QPushButton, QFileDialog, QLabel, QToolButton, QSplitter, 
                               QScrollArea, QSlider, QDialog, QTabWidget)
 from PySide6.QtCore import Qt, QTimer
-from moviepy.video.io.VideoFileClip import VideoFileClip, VideoPreviewWidget
+from moviepy.video.io.VideoFileClip import VideoFileClip
 import sys
 import os
 from .ClipDialog import ClipDialog
 from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
+from .VideoPreviewWidget import VideoPreviewWidget
 
 
 class VideoEditor(QMainWindow):
