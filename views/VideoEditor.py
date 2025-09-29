@@ -5,7 +5,9 @@ from PySide6.QtCore import Qt, QTimer
 from moviepy.video.io.VideoFileClip import VideoFileClip, VideoPreviewWidget
 import sys
 import os
-import ClipDialog, EffectsTab, TimelineWidget
+from .ClipDialog import ClipDialog
+from .EffectsTab import EffectsTab
+from .TimelineWidget import TimelineWidget
 
 
 class VideoEditor(QMainWindow):

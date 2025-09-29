@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QApplication
 import sys
-import VideoEditor
+from .views.VideoEditor import VideoEditor
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
