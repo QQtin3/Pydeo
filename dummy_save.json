@@ -1,8 +1,8 @@
 {
     "assets": [
-        "/path/to/file.mp4",
-        "/path/to/anotherfile.mp4",
-        "/path/to/an_audio_file.mp3"
+        {"id":0, "path":"/path/to/file.mp4"},
+        {"id":1, "path":"/path/to/anotherfile.mp4"},
+        {"id":2, "path":"/path/to/an_audio_file.mp3"}
     ],
     "tracks": [
         {
