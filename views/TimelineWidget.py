@@ -87,12 +87,3 @@ class TimelineWidget(QWidget):
                 text_rect = painter.fontMetrics().boundingRect(text)
                 if text_rect.width() < w - 10:
                     painter.drawText(x + 5, y + clip_height // 2 + 5, text)
-        
-        # Playhead
-        if self.video_duration > 0:
-            ratio = self.current_time / self.video_duration
-            x = int(ratio * self.width())
-            painter.setPen(QPen(QColor(255, 0, 0), 2))
-            painter.drawLine(x, 0, x, self.height())
-            painter.setBrush(QBrush(QColor(255, 0, 0)))
-            painter.drawRect(x - 5, 0, 10, 20)

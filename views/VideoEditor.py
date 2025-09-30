@@ -8,6 +8,7 @@ import os
 from .ClipDialog import ClipDialog
 from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
+from .Playhead import Playhead
 from .VideoPreviewWidget import VideoPreviewWidget
 
 # from ..FileHandlerController import readVideoFile
@@ -23,6 +24,7 @@ class VideoEditor(QMainWindow):
         self.tracks = []
         self.clips = []  # Store clip information for timeline
         self.current_play_time = 0
+        self.timelines = []  # List to manage all timelines dynamically
         
         # Create main widget and layout
         main_widget = QWidget()
@@ -146,13 +148,34 @@ class VideoEditor(QMainWindow):
         self.timeline = TimelineWidget()
         self.second_timeline = TimelineWidget()
         
+        # Global playhead that extends over all timelines
+        self.playhead = Playhead()
+        
+        # Add timelines to the list
+        self.timelines.append(self.timeline)
+        self.timelines.append(self.second_timeline)
+        
         # Status area
         self.status_label = QLabel("État: Aucune vidéo importée")
         
         # Add everything to main layout
         main_layout.addWidget(main_splitter)
-        main_layout.addWidget(self.timeline)
-        main_layout.addWidget(self.second_timeline)
+        
+        # Create container for playhead and timelines
+        timeline_container = QWidget()
+        timeline_layout = QVBoxLayout(timeline_container)
+        timeline_layout.setContentsMargins(0, 0, 0, 0)
+        timeline_layout.setSpacing(5)
+        
+        # Add timelines first
+        timeline_layout.addWidget(self.timeline)
+        timeline_layout.addWidget(self.second_timeline)
+        
+        # Configure global playhead to extend over all timelines
+        self.playhead.setParent(timeline_container)
+        self.playhead.set_timeline_widgets([self.timeline, self.second_timeline])
+        
+        main_layout.addWidget(timeline_container)
         main_layout.addWidget(self.status_label)
         
         self.setCentralWidget(main_widget)
@@ -288,6 +311,11 @@ class VideoEditor(QMainWindow):
                 
                 # Update timeline with video duration
                 self.timeline.set_duration(self.source_video.duration)
+                # Update all timelines with duration
+                for timeline in self.timelines:
+                    timeline.set_duration(self.source_video.duration)
+                # Update global playhead
+                self.playhead.set_duration(self.source_video.duration)
                 self.position_slider.setRange(0, int(self.source_video.duration * 1000))
                 self.update_time_display()
                 
@@ -395,8 +423,9 @@ class VideoEditor(QMainWindow):
         # Update UI
         self.position_slider.setValue(int(self.current_play_time * 1000))
         self.video_preview.current_time = self.current_play_time
-        self.timeline.set_current_time(self.current_play_time)
-        self.update_time_display()
+
+        # Update global playhead
+        self.playhead.set_current_time(self.current_play_time)
         
         # In real app, you'd get the current frame and display it:
         # frame = self.source_video.get_frame(self.current_play_time)
@@ -422,6 +451,17 @@ class VideoEditor(QMainWindow):
         self.status_label.setText("État: Action refaite")
         # Implementation would redo previously undone actions
     
+    def add_timeline(self):
+        """Add a new timeline"""
+        new_timeline = TimelineWidget()
+        self.timelines.append(new_timeline)
+        
+        # Update duration if video is loaded
+        if self.source_video:
+            new_timeline.set_duration(self.source_video.duration)
+        
+        return new_timeline
+
     def export_video(self):
         if not self.clips:
             self.status_label.setText("Erreur: Aucun clip à exporter")
