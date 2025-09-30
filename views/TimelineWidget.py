@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget
-from PySide6.QtGui import QPainter, QBrush, QPen, QColor
+from PySide6.QtGui import Qt, QPainter, QBrush, QPen, QColor
 
 class TimelineWidget(QWidget):
     """Custom widget for the timeline"""
@@ -8,17 +8,40 @@ class TimelineWidget(QWidget):
         self.setMinimumHeight(100)
         self.video_duration = 0
         self.current_time = 0
+        self.dragging = False
         self.clips = []  # List of clips to display on timeline
         
     def add_clip(self, clip):
         """Add a clip to the timeline"""
         self.clips.append(clip)
         self.update()
+
+
+    def press_mouse_event(self, event):
+        if event.button() == Qt.LeftButton :
+            self.dragging = True
+            self.set_current_time_to_cursor(event.position().x())
+
+    def release_mouse_event(self, event):
+        if event.button() == Qt.LeftButton :
+            self.dragging = False
+            self.set_current_time_to_cursor(event.position().x())
+
+    def move_mouse_event(self, event):
+        if self.dragging :
+            self.set_current_time_to_cursor(event.position().x())
+
         
     def set_current_time(self, time):
         """Set the current play position"""
         self.current_time = time
         self.update()
+
+    def set_current_time_to_cursor(self, pos_x):
+        """Set the current play position to the cursor position"""
+        if self.video_duration > 0:
+            ratio = pos_x / self.width()
+            self.set_current_time(ratio * self.video_duration)
         
     def set_duration(self, duration):
         """Set the total video duration"""
