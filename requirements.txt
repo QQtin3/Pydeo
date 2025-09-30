@@ -1,2 +1,2 @@
-﻿PySide6
+PySide6
 moviepy
