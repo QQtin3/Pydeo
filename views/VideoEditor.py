@@ -10,11 +10,13 @@ from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
 from .VideoPreviewWidget import VideoPreviewWidget
 
+# from ..FileHandlerController import readVideoFile
+
 
 class VideoEditor(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Éditeur Vidéo Simple")
+        self.setWindowTitle("PyDEO - Éditeur Vidéo Simple")
         self.setGeometry(100, 100, 1200, 800)
         self.source_video_path = None
         self.source_video = None
@@ -112,6 +114,7 @@ class VideoEditor(QMainWindow):
         self.import_video_btn.setEnabled(True)
         track_btn_layout.addWidget(self.import_video_btn)
 
+        """
         self.add_track_btn = QPushButton("Ajouter une piste")
         self.add_track_btn.clicked.connect(self.add_track)
         self.add_track_btn.setEnabled(False)
@@ -120,6 +123,7 @@ class VideoEditor(QMainWindow):
         self.remove_track_btn = QPushButton("Supprimer piste")
         self.remove_track_btn.setEnabled(False)
         track_btn_layout.addWidget(self.remove_track_btn)
+        """
         sources_layout.addLayout(track_btn_layout)
 
         # Effects tab
@@ -278,8 +282,7 @@ class VideoEditor(QMainWindow):
             try:
                 self.source_video_path = file_path
                 self.source_video = VideoFileClip(file_path)
-                self.status_label.setText(f"État: Vidéo chargée - {os.path.basename(file_path)}")
-                self.add_track_btn.setEnabled(True)
+                # self.add_track_btn.setEnabled(True)
                 self.export_btn.setEnabled(True)
                 self.position_slider.setEnabled(True)
                 
@@ -293,7 +296,29 @@ class VideoEditor(QMainWindow):
                 self.video_preview.set_frame(None)  # In real app, you'd get the actual frame
                 self.video_preview.video_duration = self.source_video.duration
                 self.video_preview.current_time = 0
+
+                #readVideoFile(file_path)
+
+                # Create track item
+                track_item = QWidget()
+                track_layout = QHBoxLayout(track_item)
+                track_layout.setContentsMargins(5, 2, 5, 2)
                 
+                # Clip info
+                clip_info = QLabel(f"{os.path.basename(self.source_video_path)}")
+                clip_info.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
+                track_layout.addWidget(clip_info, 1)
+                
+                # Duration
+                duration = self.source_video.duration
+                duration_label = QLabel(f"{duration:.1f}s")
+                duration_label.setStyleSheet("min-width: 50px; text-align: right;")
+                track_layout.addWidget(duration_label)
+                
+                # Add to tracks layout
+                self.tracks_layout.insertWidget(self.tracks_layout.count() - 1, track_item)
+                self.status_label.setText(f"État: Vidéo ajoutée - {os.path.basename(file_path)}")
+                    
             except Exception as e:
                 self.status_label.setText(f"Erreur: {str(e)}")
     
