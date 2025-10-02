@@ -40,5 +40,5 @@ class ClipDialog(QDialog):
         
         self.setLayout(layout)
         
-    def get_values(self) -> tuple[float, float]:
+    def getValues(self) -> tuple[float, float]:
         return self.start_spin.value(), self.end_spin.value()
