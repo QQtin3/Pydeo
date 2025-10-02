@@ -28,7 +28,7 @@ class PydeoStyles:
     }
     
     @staticmethod
-    def get_main_stylesheet():
+    def get_main_stylesheet() -> str:
         """Returns the main application stylesheet"""
         return f"""
         /* Main Application */

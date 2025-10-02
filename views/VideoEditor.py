@@ -1,69 +1,99 @@
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                               QPushButton, QFileDialog, QLabel, QToolButton, QSplitter, 
-                              QScrollArea, QSlider, QDialog, QTabWidget)
+                              QScrollArea, QSlider, QDialog, QTabWidget, QLayout)
 from PySide6.QtCore import Qt, QTimer
+from moviepy import VideoClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import sys
 import os
+
+from model.TimelineClip import TimelineClip
 from .ClipDialog import ClipDialog
 from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
-from .Playhead import Playhead
+from .PlayHead import PlayHead
 from .VideoPreviewWidget import VideoPreviewWidget
 
 # from ..FileHandlerController import readVideoFile
 
 
 class VideoEditor(QMainWindow):
+    sourceVideoPath: str | None
+    sourceVideo: VideoClip | None
+    tracks: list #TODO : à préciser ( => list[Object])
+    clips: list[TimelineClip]
+    currentPlayTime: float
+    timelines: list[TimelineWidget] #TODO : à préciser ( => list[Object])
+    videoPreview: VideoPreviewWidget
+    playBtn: QPushButton
+    positionSlider: QSlider
+    timeLabel: QLabel
+    tabs: QTabWidget
+    tracksContainer: QWidget
+    tracksLayout: QVBoxLayout
+    importVideoBtn: QPushButton
+    timeline: TimelineWidget
+    secondTimeline: TimelineWidget
+    playHead: PlayHead
+    statusLabel: QLabel
+    playTimer: QTimer
+    isPlaying: bool
+    moveBtn: QToolButton
+    cutBtn: QToolButton
+    splitBtn: QToolButton
+    selectBtn: QToolButton
+    exportBtn: QToolButton
+    
+    
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyDEO - Éditeur Vidéo Simple")
         self.setGeometry(100, 100, 1200, 800)
-        self.source_video_path = None
-        self.source_video = None
+        self.sourceVideoPath = None
+        self.sourceVideo = None
         self.tracks = []
         self.clips = []  # Store clip information for timeline
-        self.current_play_time = 0
+        self.currentPlayTime = 0
         self.timelines = []  # List to manage all timelines dynamically
         
         # Create main widget and layout
-        main_widget = QWidget()
-        main_layout = QVBoxLayout(main_widget)
-        main_layout.setContentsMargins(5, 5, 5, 5)
-        main_layout.setSpacing(5)
+        mainWidget = QWidget()
+        mainLayout = QVBoxLayout(mainWidget)
+        mainLayout.setContentsMargins(5, 5, 5, 5)
+        mainLayout.setSpacing(5)
         
         # Create splitter for main content (left: preview, right: tracks)
-        main_splitter = QSplitter(Qt.Horizontal)
+        mainSplitter = QSplitter(Qt.Orientation.Horizontal)
         
         # Left side - video preview
-        preview_widget = QWidget()
-        preview_layout = QVBoxLayout(preview_widget)
-        preview_layout.setContentsMargins(0, 0, 0, 0)
+        previewWidget = QWidget()
+        previewLayout = QVBoxLayout(previewWidget)
+        previewLayout.setContentsMargins(0, 0, 0, 0)
         
-        self.video_preview = VideoPreviewWidget()
-        preview_layout.addWidget(self.video_preview)
+        self.videoPreview = VideoPreviewWidget()
+        previewLayout.addWidget(self.videoPreview)
         
         # Transport controls
-        transport_layout = QHBoxLayout()
-        self.play_btn = QPushButton("▶")
-        self.play_btn.setFixedSize(30, 30)
-        self.play_btn.clicked.connect(self.toggle_play)
-        transport_layout.addWidget(self.play_btn)
+        transportLayout = QHBoxLayout()
+        self.playBtn = QPushButton("▶")
+        self.playBtn.setFixedSize(30, 30)
+        self.playBtn.clicked.connect(self.togglePlay)
+        transportLayout.addWidget(self.playBtn)
         
-        self.position_slider = QSlider(Qt.Horizontal)
-        self.position_slider.setEnabled(False)
-        transport_layout.addWidget(self.position_slider)
+        self.positionSlider = QSlider(Qt.Orientation.Horizontal)
+        self.positionSlider.setEnabled(False)
+        transportLayout.addWidget(self.positionSlider)
         
-        self.time_label = QLabel("00:00 / 00:00")
-        transport_layout.addWidget(self.time_label)
+        self.timeLabel = QLabel("00:00 / 00:00")
+        transportLayout.addWidget(self.timeLabel)
         
-        preview_layout.addLayout(transport_layout)
-        main_splitter.addWidget(preview_widget)
+        previewLayout.addLayout(transportLayout)
+        mainSplitter.addWidget(previewWidget)
         
         # Right side - track list and controls
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        rightWidget = QWidget()
+        rightLayout = QVBoxLayout(rightWidget)
+        rightLayout.setContentsMargins(0, 0, 0, 0)
         
         # Track list area with scroll
         # === Create tabs for Sources and Effects ===
@@ -95,26 +125,26 @@ class VideoEditor(QMainWindow):
         """)
         
         # Sources tab
-        sources_tab = QWidget()
-        sources_layout = QVBoxLayout(sources_tab)
-        sources_layout.setContentsMargins(5, 5, 5, 5)
+        sourcesTab = QWidget()
+        sourcesLayout = QVBoxLayout(sourcesTab)
+        sourcesLayout.setContentsMargins(5, 5, 5, 5)
 
-        tracks_scroll = QScrollArea()
-        tracks_scroll.setWidgetResizable(True)
-        self.tracks_container = QWidget()
-        self.tracks_layout = QVBoxLayout(self.tracks_container)
-        self.tracks_layout.addStretch()
-        tracks_scroll.setWidget(self.tracks_container)
+        tracksScroll = QScrollArea()
+        tracksScroll.setWidgetResizable(True)
+        self.tracksContainer = QWidget()
+        self.tracksLayout = QVBoxLayout(self.tracksContainer)
+        self.tracksLayout.addStretch()
+        tracksScroll.setWidget(self.tracksContainer)
 
-        sources_layout.addWidget(tracks_scroll)
+        sourcesLayout.addWidget(tracksScroll)
 
         # Track controls
-        track_btn_layout = QHBoxLayout()
+        trackBtnLayout = QHBoxLayout()
 
-        self.import_video_btn = QPushButton("Importer une source")
-        self.import_video_btn.clicked.connect(self.import_video)
-        self.import_video_btn.setEnabled(True)
-        track_btn_layout.addWidget(self.import_video_btn)
+        self.importVideoBtn = QPushButton("Importer une source")
+        self.importVideoBtn.clicked.connect(self.importVideo)
+        self.importVideoBtn.setEnabled(True)
+        trackBtnLayout.addWidget(self.importVideoBtn)
 
         """
         self.add_track_btn = QPushButton("Ajouter une piste")
@@ -126,345 +156,342 @@ class VideoEditor(QMainWindow):
         self.remove_track_btn.setEnabled(False)
         track_btn_layout.addWidget(self.remove_track_btn)
         """
-        sources_layout.addLayout(track_btn_layout)
+        sourcesLayout.addLayout(trackBtnLayout)
 
         # Effects tab
-        effects_tab = EffectsTab()
+        effectsTab = EffectsTab()
         
         # Add tabs
-        self.tabs.addTab(sources_tab, "Sources")
-        self.tabs.addTab(effects_tab, "Effets")
+        self.tabs.addTab(sourcesTab, "Sources")
+        self.tabs.addTab(effectsTab, "Effets")
         
-        right_layout.addWidget(self.tabs)
-        main_splitter.addWidget(right_widget)
-        main_splitter.setSizes([800, 400])  # Initial sizes
+        rightLayout.addWidget(self.tabs)
+        mainSplitter.addWidget(rightWidget)
+        mainSplitter.setSizes([800, 400])  # Initial sizes
         
-        main_splitter.addWidget(right_widget)
-        main_splitter.setSizes([800, 400])  # Initial sizes
+        mainSplitter.addWidget(rightWidget)
+        mainSplitter.setSizes([800, 400])  # Initial sizes
 
-        self.create_toolbar(preview_layout)
+        self.createToolbar(previewLayout)
         
         # Timeline area
         self.timeline = TimelineWidget()
-        self.second_timeline = TimelineWidget()
+        self.secondTimeline = TimelineWidget()
         
         # Global playhead that extends over all timelines
-        self.playhead = Playhead()
+        self.playHead = PlayHead()
         
         # Add timelines to the list
         self.timelines.append(self.timeline)
-        self.timelines.append(self.second_timeline)
+        self.timelines.append(self.secondTimeline)
         
         # Status area
-        self.status_label = QLabel("État: Aucune vidéo importée")
+        self.statusLabel = QLabel("État: Aucune vidéo importée")
         
         # Add everything to main layout
-        main_layout.addWidget(main_splitter)
+        mainLayout.addWidget(mainSplitter)
         
         # Create container for playhead and timelines
-        timeline_container = QWidget()
-        timeline_layout = QVBoxLayout(timeline_container)
-        timeline_layout.setContentsMargins(0, 0, 0, 0)
-        timeline_layout.setSpacing(5)
+        timelineContainer = QWidget()
+        timelineLayout = QVBoxLayout(timelineContainer)
+        timelineLayout.setContentsMargins(0, 0, 0, 0)
+        timelineLayout.setSpacing(5)
         
         # Add timelines first
-        timeline_layout.addWidget(self.timeline)
-        timeline_layout.addWidget(self.second_timeline)
+        timelineLayout.addWidget(self.timeline)
+        timelineLayout.addWidget(self.secondTimeline)
         
         # Configure global playhead to extend over all timelines
-        self.playhead.setParent(timeline_container)
-        self.playhead.set_timeline_widgets([self.timeline, self.second_timeline])
+        self.playHead.setParent(timelineContainer)
+        self.playHead.setTimelineWidgets([self.timeline, self.secondTimeline])
         
-        main_layout.addWidget(timeline_container)
-        main_layout.addWidget(self.status_label)
+        mainLayout.addWidget(timelineContainer)
+        mainLayout.addWidget(self.statusLabel)
         
-        self.setCentralWidget(main_widget)
+        self.setCentralWidget(mainWidget)
         
         # Timer for playback
-        self.play_timer = QTimer()
-        self.play_timer.timeout.connect(self.update_playback)
-        self.is_playing = False
+        self.playTimer = QTimer()
+        self.playTimer.timeout.connect(self.updatePlayback)
+        self.isPlaying = False
         
-    def set_tool_mode(self, mode):
+    def setToolMode(self, mode: str) -> None:
         """Set the current editing tool mode"""
         # Uncheck all tool buttons
-        self.move_btn.setChecked(False)
-        self.cut_btn.setChecked(False)
-        self.split_btn.setChecked(False)
-        self.select_btn.setChecked(False)
+        self.moveBtn.setChecked(False)
+        self.cutBtn.setChecked(False)
+        self.splitBtn.setChecked(False)
+        self.selectBtn.setChecked(False)
         
         # Check the selected tool
         if mode == 'move':
-            self.move_btn.setChecked(True)
+            self.moveBtn.setChecked(True)
         elif mode == 'cut':
-            self.cut_btn.setChecked(True)
+            self.cutBtn.setChecked(True)
         elif mode == 'split':
-            self.split_btn.setChecked(True)
+            self.splitBtn.setChecked(True)
         elif mode == 'select':
-            self.select_btn.setChecked(True)
+            self.selectBtn.setChecked(True)
         
         self.current_tool = mode
-        self.status_label.setText(f"État: Mode d'édition: {mode}")
-    def create_toolbar(self, layout):
+        self.statusLabel.setText(f"État: Mode d'édition: {mode}")
+
+    def createToolbar(self, layout: QLayout) -> None:
         """Create the top toolbar with editing tools"""
         """Create the toolbar to be placed under the video preview"""
         toolbar_widget = QWidget()
         toolbar_widget.setStyleSheet("background-color: #3a3a3a; border-top: 1px solid #555; border-bottom: 1px solid #555;")
-        toolbar_layout = QHBoxLayout(toolbar_widget)
-        toolbar_layout.setContentsMargins(5, 2, 5, 2)
-        toolbar_layout.setSpacing(8)
+        toolbarLayout = QHBoxLayout(toolbar_widget)
+        toolbarLayout.setContentsMargins(5, 2, 5, 2)
+        toolbarLayout.setSpacing(8)
         
         # Undo/Redo
-        undo_btn = QToolButton()
-        undo_btn.setText("↩")
-        undo_btn.setToolTip("Annuler (Ctrl+Z)")
-        undo_btn.setFixedSize(24, 24)
-        undo_btn.clicked.connect(self.undo)
-        toolbar_layout.addWidget(undo_btn)
+        undoBtn = QToolButton()
+        undoBtn.setText("↩")
+        undoBtn.setToolTip("Annuler (Ctrl+Z)")
+        undoBtn.setFixedSize(24, 24)
+        undoBtn.clicked.connect(self.undo)
+        toolbarLayout.addWidget(undoBtn)
         
-        redo_btn = QToolButton()
-        redo_btn.setText("↪")
-        redo_btn.setToolTip("Refaire (Ctrl+Y)")
-        redo_btn.setFixedSize(24, 24)
-        redo_btn.clicked.connect(self.redo)
-        toolbar_layout.addWidget(redo_btn)
+        redoBtn = QToolButton()
+        redoBtn.setText("↪")
+        redoBtn.setToolTip("Refaire (Ctrl+Y)")
+        redoBtn.setFixedSize(24, 24)
+        redoBtn.clicked.connect(self.redo)
+        toolbarLayout.addWidget(redoBtn)
         
-        toolbar_layout.addSpacing(15)
+        toolbarLayout.addSpacing(15)
         
         # Editing tools (as checkable buttons)
-        self.move_btn = QToolButton()
-        self.move_btn.setCheckable(True)
-        self.move_btn.setChecked(True)
-        self.move_btn.setText("⤢")
-        self.move_btn.setToolTip("Déplacer")
-        self.move_btn.setFixedSize(24, 24)
-        self.move_btn.clicked.connect(lambda: self.set_tool_mode('move'))
-        toolbar_layout.addWidget(self.move_btn)
+        self.moveBtn = QToolButton()
+        self.moveBtn.setCheckable(True)
+        self.moveBtn.setChecked(True)
+        self.moveBtn.setText("⤢")
+        self.moveBtn.setToolTip("Déplacer")
+        self.moveBtn.setFixedSize(24, 24)
+        self.moveBtn.clicked.connect(lambda: self.setToolMode('move'))
+        toolbarLayout.addWidget(self.moveBtn)
         
-        self.cut_btn = QToolButton()
-        self.cut_btn.setCheckable(True)
-        self.cut_btn.setText("✂")
-        self.cut_btn.setToolTip("Couper")
-        self.cut_btn.setFixedSize(24, 24)
-        self.cut_btn.clicked.connect(lambda: self.set_tool_mode('cut'))
-        toolbar_layout.addWidget(self.cut_btn)
+        self.cutBtn = QToolButton()
+        self.cutBtn.setCheckable(True)
+        self.cutBtn.setText("✂")
+        self.cutBtn.setToolTip("Couper")
+        self.cutBtn.setFixedSize(24, 24)
+        self.cutBtn.clicked.connect(lambda: self.setToolMode('cut'))
+        toolbarLayout.addWidget(self.cutBtn)
         
-        self.split_btn = QToolButton()
-        self.split_btn.setCheckable(True)
-        self.split_btn.setText("⌬")
-        self.split_btn.setToolTip("Scinder")
-        self.split_btn.setFixedSize(24, 24)
-        self.split_btn.clicked.connect(lambda: self.set_tool_mode('split'))
-        toolbar_layout.addWidget(self.split_btn)
+        self.splitBtn = QToolButton()
+        self.splitBtn.setCheckable(True)
+        self.splitBtn.setText("⌬")
+        self.splitBtn.setToolTip("Scinder")
+        self.splitBtn.setFixedSize(24, 24)
+        self.splitBtn.clicked.connect(lambda: self.setToolMode('split'))
+        toolbarLayout.addWidget(self.splitBtn)
         
-        self.select_btn = QToolButton()
-        self.select_btn.setCheckable(True)
-        self.select_btn.setText("☐")
-        self.select_btn.setToolTip("Sélectionner")
-        self.select_btn.setFixedSize(24, 24)
-        self.select_btn.clicked.connect(lambda: self.set_tool_mode('select'))
-        toolbar_layout.addWidget(self.select_btn)
+        self.selectBtn = QToolButton()
+        self.selectBtn.setCheckable(True)
+        self.selectBtn.setText("☐")
+        self.selectBtn.setToolTip("Sélectionner")
+        self.selectBtn.setFixedSize(24, 24)
+        self.selectBtn.clicked.connect(lambda: self.setToolMode('select'))
+        toolbarLayout.addWidget(self.selectBtn)
         
-        toolbar_layout.addSpacing(15)
+        toolbarLayout.addSpacing(15)
         
         # Zoom controls
-        zoom_in_btn = QToolButton()
-        zoom_in_btn.setText("+")
-        zoom_in_btn.setToolTip("Zoom avant")
-        zoom_in_btn.setFixedSize(24, 24)
-        zoom_in_btn.clicked.connect(self.zoom_in)
-        toolbar_layout.addWidget(zoom_in_btn)
+        zoomInBtn = QToolButton()
+        zoomInBtn.setText("+")
+        zoomInBtn.setToolTip("Zoom avant")
+        zoomInBtn.setFixedSize(24, 24)
+        zoomInBtn.clicked.connect(self.zoomIn)
+        toolbarLayout.addWidget(zoomInBtn)
         
-        zoom_out_btn = QToolButton()
-        zoom_out_btn.setText("-")
-        zoom_out_btn.setToolTip("Zoom arrière")
-        zoom_out_btn.setFixedSize(24, 24)
-        zoom_out_btn.clicked.connect(self.zoom_out)
-        toolbar_layout.addWidget(zoom_out_btn)
+        zoomOutButton = QToolButton()
+        zoomOutButton.setText("-")
+        zoomOutButton.setToolTip("Zoom arrière")
+        zoomOutButton.setFixedSize(24, 24)
+        zoomOutButton.clicked.connect(self.zoomOut)
+        toolbarLayout.addWidget(zoomOutButton)
         
-        toolbar_layout.addStretch()
+        toolbarLayout.addStretch()
         
         # Add the toolbar to the provided layout (under video preview)
         layout.addWidget(toolbar_widget)
 
-    def zoom_in(self):
+    def zoomIn(self) -> None:
         """Handle zoom in action"""
-        self.status_label.setText("État: Zoom avant")
+        self.statusLabel.setText("État: Zoom avant")
         # In a real implementation, this would zoom in the timeline
     
-    def zoom_out(self):
+    def zoomOut(self) -> None:
         """Handle zoom out action"""
-        self.status_label.setText("État: Zoom arrière")
+        self.statusLabel.setText("État: Zoom arrière")
     
-    def import_video(self):
-        file_path, _ = QFileDialog.getOpenFileName(
+    def importVideo(self) -> None:
+        filePath, _ = QFileDialog.getOpenFileName(
             self, "Sélectionner une vidéo", "", "Fichiers vidéo (*.mp4 *.avi *.mov *.mkv)"
         )
         
-        if file_path:
+        if filePath:
             try:
-                self.source_video_path = file_path
-                self.source_video = VideoFileClip(file_path)
+                self.sourceVideoPath = filePath
+                self.sourceVideo = VideoFileClip(filePath)
                 # self.add_track_btn.setEnabled(True)
-                self.export_btn.setEnabled(True)
-                self.position_slider.setEnabled(True)
+                self.exportBtn.setEnabled(True)
+                self.positionSlider.setEnabled(True)
                 
                 # Update timeline with video duration
-                self.timeline.set_duration(self.source_video.duration)
+                self.timeline.setDuration(self.sourceVideo.duration)
                 # Update all timelines with duration
                 for timeline in self.timelines:
-                    timeline.set_duration(self.source_video.duration)
-                # Update global playhead
-                self.playhead.set_duration(self.source_video.duration)
-                self.position_slider.setRange(0, int(self.source_video.duration * 1000))
-                self.update_time_display()
+                    timeline.setDuration(self.sourceVideo.duration)
+                # Update global play head
+                self.playHead.setDuration(self.sourceVideo.duration)
+                self.positionSlider.setRange(0, int(self.sourceVideo.duration * 1000))
+                self.updateTimeDisplay()
                 
                 # Display first frame
-                self.current_play_time = 0
-                self.video_preview.set_frame(None)  # In real app, you'd get the actual frame
-                self.video_preview.video_duration = self.source_video.duration
-                self.video_preview.current_time = 0
+                self.currentPlayTime = 0
+                self.videoPreview.setFrame(None)  # In real app, you'd get the actual frame
+                self.videoPreview.videoDuration = self.sourceVideo.duration
+                self.videoPreview.currentTime = 0
 
                 #readVideoFile(file_path)
 
                 # Create track item
-                track_item = QWidget()
-                track_layout = QHBoxLayout(track_item)
-                track_layout.setContentsMargins(5, 2, 5, 2)
+                trackItem = QWidget()
+                trackLayout = QHBoxLayout(trackItem)
+                trackLayout.setContentsMargins(5, 2, 5, 2)
                 
                 # Clip info
-                clip_info = QLabel(f"{os.path.basename(self.source_video_path)}")
-                clip_info.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
-                track_layout.addWidget(clip_info, 1)
+                clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath)}")
+                clipInfo.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
+                trackLayout.addWidget(clipInfo, 1)
                 
                 # Duration
-                duration = self.source_video.duration
-                duration_label = QLabel(f"{duration:.1f}s")
-                duration_label.setStyleSheet("min-width: 50px; text-align: right;")
-                track_layout.addWidget(duration_label)
+                duration = self.sourceVideo.duration
+                durationLabel = QLabel(f"{duration:.1f}s")
+                durationLabel.setStyleSheet("min-width: 50px; text-align: right;")
+                trackLayout.addWidget(durationLabel)
                 
                 # Add to tracks layout
-                self.tracks_layout.insertWidget(self.tracks_layout.count() - 1, track_item)
-                self.status_label.setText(f"État: Vidéo ajoutée - {os.path.basename(file_path)}")
+                self.tracksLayout.insertWidget(self.tracksLayout.count() - 1, trackItem)
+                self.statusLabel.setText(f"État: Vidéo ajoutée - {os.path.basename(filePath)}")
                     
             except Exception as e:
-                self.status_label.setText(f"Erreur: {str(e)}")
+                self.statusLabel.setText(f"Erreur: {str(e)}")
     
-    def add_track(self):
-        if not self.source_video:
+    def addTrack(self) -> None:
+        if not self.sourceVideo:
             return
             
         dialog = ClipDialog(self)
-        if dialog.exec() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             start, end = dialog.get_values()
             
             # Validate clip range
             if end <= start:
-                self.status_label.setText("Erreur: La fin doit être après le début")
+                self.statusLabel.setText("Erreur: La fin doit être après le début")
                 return
                 
-            if end > self.source_video.duration:
-                end = self.source_video.duration
-                self.status_label.setText(f"Avertissement: Fin ajustée à la durée maximale ({self.source_video.duration:.1f}s)")
+            if end > self.sourceVideo.duration:
+                end = self.sourceVideo.duration
+                self.statusLabel.setText(f"Avertissement: Fin ajustée à la durée maximale ({self.sourceVideo.duration:.1f}s)")
             
             # Create track item
-            track_item = QWidget()
-            track_layout = QHBoxLayout(track_item)
-            track_layout.setContentsMargins(5, 2, 5, 2)
+            trackItem = QWidget()
+            trackLayout = QHBoxLayout(trackItem)
+            trackLayout.setContentsMargins(5, 2, 5, 2)
             
             # Clip info
-            clip_info = QLabel(f"{os.path.basename(self.source_video_path)} [{start:.1f}s - {end:.1f}s]")
-            clip_info.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
-            track_layout.addWidget(clip_info, 1)
+            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or "")} [{start:.1f}s - {end:.1f}s]")
+            clipInfo.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
+            trackLayout.addWidget(clipInfo, 1)
             
             # Duration
             duration = end - start
-            duration_label = QLabel(f"{duration:.1f}s")
-            duration_label.setStyleSheet("min-width: 50px; text-align: right;")
-            track_layout.addWidget(duration_label)
+            durationLabel = QLabel(f"{duration:.1f}s")
+            durationLabel.setStyleSheet("min-width: 50px; text-align: right;")
+            trackLayout.addWidget(durationLabel)
             
             # Add to tracks layout
-            self.tracks_layout.insertWidget(self.tracks_layout.count() - 1, track_item)
+            self.tracksLayout.insertWidget(self.tracksLayout.count() - 1, trackItem)
             
             # Add to timeline
-            self.clips.append({
-                'name': os.path.basename(self.source_video_path),
-                'start': start,
-                'end': end
-            })
-            self.timeline.add_clip(self.clips[-1])
+            self.clips.append(TimelineClip(os.path.basename(self.sourceVideoPath or ""), start, end))
+            self.timeline.addClip(self.clips[-1])
             
-            self.status_label.setText(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
+            self.statusLabel.setText(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
     
-    def toggle_play(self):
-        if not self.source_video:
+    def togglePlay(self) -> None:
+        if not self.sourceVideo:
             return
             
-        if self.is_playing:
-            self.play_timer.stop()
-            self.play_btn.setText("▶")
-            self.is_playing = False
+        if self.isPlaying:
+            self.playTimer.stop()
+            self.playBtn.setText("▶")
+            self.isPlaying = False
         else:
-            self.play_timer.start(30)  # ~33fps
-            self.play_btn.setText("⏸")
-            self.is_playing = True
+            self.playTimer.start(30)  # ~33fps
+            self.playBtn.setText("⏸")
+            self.isPlaying = True
     
-    def update_playback(self):
-        if not self.source_video:
+    def updatePlayback(self) -> None:
+        if not self.sourceVideo:
             return
             
-        self.current_play_time += 0.03  # 30ms per frame
-        if self.current_play_time >= self.source_video.duration:
-            self.current_play_time = 0
-            self.play_timer.stop()
-            self.play_btn.setText("▶")
-            self.is_playing = False
+        self.currentPlayTime += 0.03  # 30ms per frame
+        if self.currentPlayTime >= self.sourceVideo.duration:
+            self.currentPlayTime = 0
+            self.playTimer.stop()
+            self.playBtn.setText("▶")
+            self.isPlaying = False
         
         # Update UI
-        self.position_slider.setValue(int(self.current_play_time * 1000))
-        self.video_preview.current_time = self.current_play_time
+        self.positionSlider.setValue(int(self.currentPlayTime * 1000))
+        self.videoPreview.currentTime = self.currentPlayTime
 
         # Update global playhead
-        self.playhead.set_current_time(self.current_play_time)
+        self.playHead.setCurrentTime(self.currentPlayTime)
         
         # In real app, you'd get the current frame and display it:
         # frame = self.source_video.get_frame(self.current_play_time)
         # self.video_preview.set_frame(frame)
     
-    def update_time_display(self):
-        if not self.source_video:
-            self.time_label.setText("00:00 / 00:00")
+    def updateTimeDisplay(self) -> None:
+        if not self.sourceVideo:
+            self.timeLabel.setText("00:00 / 00:00")
             return
             
-        current_min = int(self.current_play_time // 60)
-        current_sec = int(self.current_play_time % 60)
-        total_min = int(self.source_video.duration // 60)
-        total_sec = int(self.source_video.duration % 60)
+        currentMin = int(self.currentPlayTime // 60)
+        currentSec = int(self.currentPlayTime % 60)
+        totalMin = int(self.sourceVideo.duration // 60)
+        totalSec = int(self.sourceVideo.duration % 60)
         
-        self.time_label.setText(f"{current_min:02d}:{current_sec:02d} / {total_min:02d}:{total_sec:02d}")
+        self.timeLabel.setText(f"{currentMin:02d}:{currentSec:02d} / {totalMin:02d}:{totalSec:02d}")
     
-    def undo(self):
-        self.status_label.setText("État: Action annulée")
+    def undo(self) -> None:
+        self.statusLabel.setText("État: Action annulée")
         # Implementation would track changes and revert them
     
-    def redo(self):
-        self.status_label.setText("État: Action refaite")
+    def redo(self) -> None:
+        self.statusLabel.setText("État: Action refaite")
         # Implementation would redo previously undone actions
     
-    def add_timeline(self):
+    def addTimeline(self) -> TimelineWidget:
         """Add a new timeline"""
-        new_timeline = TimelineWidget()
-        self.timelines.append(new_timeline)
+        newTimeline = TimelineWidget()
+        self.timelines.append(newTimeline)
         
         # Update duration if video is loaded
-        if self.source_video:
-            new_timeline.set_duration(self.source_video.duration)
+        if self.sourceVideo:
+            newTimeline.setDuration(self.sourceVideo.duration)
         
-        return new_timeline
+        return newTimeline
 
-    def export_video(self):
+    def exportVideo(self) -> None:
         if not self.clips:
-            self.status_label.setText("Erreur: Aucun clip à exporter")
+            self.statusLabel.setText("Erreur: Aucun clip à exporter")
             return
             
         file_path, _ = QFileDialog.getSaveFileName(
@@ -474,35 +501,10 @@ class VideoEditor(QMainWindow):
         if file_path:
             try:
                 # In a real implementation, this would composite the clips and export
-                self.status_label.setText(f"État: Export en cours vers {file_path}...")
+                self.statusLabel.setText(f"État: Export en cours vers {file_path}...")
                 
                 # Simulate export progress
-                QTimer.singleShot(2000, lambda: self.status_label.setText(f"État: Vidéo exportée vers {file_path}"))
+                QTimer.singleShot(2000, lambda: self.statusLabel.setText(f"État: Vidéo exportée vers {file_path}"))
                 
             except Exception as e:
-                self.status_label.setText(f"Erreur d'export: {str(e)}")
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    editor = VideoEditor()
-    
-    # Create menu bar
-    menu_bar = editor.menuBar()
-    
-    # File menu
-    file_menu = menu_bar.addMenu("Fichier")
-    import_action = file_menu.addAction("Importer une vidéo")
-    import_action.triggered.connect(editor.import_video)
-    
-    export_action = file_menu.addAction("Exporter la vidéo")
-    export_action.triggered.connect(editor.export_video)
-    export_action.setEnabled(False)
-    editor.export_btn = export_action  # Store reference for enabling later
-    
-    file_menu.addSeparator()
-    exit_action = file_menu.addAction("Quitter")
-    exit_action.triggered.connect(app.quit)
-    
-    editor.show()
-    sys.exit(app.exec())
+                self.statusLabel.setText(f"Erreur d'export: {str(e)}")
