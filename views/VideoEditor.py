@@ -1,10 +1,8 @@
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                              QPushButton, QFileDialog, QLabel, QToolButton, QSplitter, 
-                              QScrollArea, QSlider, QDialog, QTabWidget)
-from PySide6.QtCore import Qt, QTimer
-from moviepy.video.io.VideoFileClip import VideoFileClip
-import sys
-import os
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                               QPushButton, QFileDialog, QLabel, QToolButton, QSplitter,
+                               QScrollArea, QSlider, QDialog, QTabWidget)
+
+from controller.VideoPreviewController import VideoPreviewController
 from .ClipDialog import ClipDialog
 from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
@@ -42,6 +40,7 @@ class VideoEditor(QMainWindow):
         
         self.video_preview = VideoPreviewWidget()
         preview_layout.addWidget(self.video_preview)
+		self.video_controller = VideoPreviewController(self.video_preview, 24)
         
         # Transport controls
         transport_layout = QHBoxLayout()
@@ -52,24 +51,27 @@ class VideoEditor(QMainWindow):
         
         self.position_slider = QSlider(Qt.Horizontal)
         self.position_slider.setEnabled(False)
-        transport_layout.addWidget(self.position_slider)
-        
-        self.time_label = QLabel("00:00 / 00:00")
-        transport_layout.addWidget(self.time_label)
-        
-        preview_layout.addLayout(transport_layout)
-        main_splitter.addWidget(preview_widget)
-        
-        # Right side - track list and controls
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Track list area with scroll
-        # === Create tabs for Sources and Effects ===
-        self.tabs = QTabWidget()
-        self.tabs.setTabBarAutoHide(False)
-        self.tabs.setStyleSheet("""
+		self.position_slider.sliderPressed.connect(self.on_slider_pressed)
+		self.position_slider.sliderReleased.connect(self.on_slider_released)
+		self.position_slider.sliderMoved.connect(self.on_slider_moved)
+		transport_layout.addWidget(self.position_slider)
+		
+		self.time_label = QLabel("00:00 / 00:00")
+		transport_layout.addWidget(self.time_label)
+		
+		preview_layout.addLayout(transport_layout)
+		main_splitter.addWidget(preview_widget)
+		
+		# Right side - track list and controls
+		right_widget = QWidget()
+		right_layout = QVBoxLayout(right_widget)
+		right_layout.setContentsMargins(0, 0, 0, 0)
+		
+		# Track list area with scroll
+		# === Create tabs for Sources and Effects ===
+		self.tabs = QTabWidget()
+		self.tabs.setTabBarAutoHide(False)
+		self.tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: 1px solid #555;
                 background: #333;
@@ -155,11 +157,11 @@ class VideoEditor(QMainWindow):
         self.timelines.append(self.timeline)
         self.timelines.append(self.second_timeline)
         
-        # Status area
-        self.status_label = QLabel("État: Aucune vidéo importée")
-        
-        # Add everything to main layout
-        main_layout.addWidget(main_splitter)
+		# Status area
+		self.status_label = QLabel("État: Aucune vidéo importée")
+		
+		# Add everything to main layout
+		main_layout.addWidget(main_splitter)
         
         # Create container for playhead and timelines
         timeline_container = QWidget()
@@ -176,35 +178,38 @@ class VideoEditor(QMainWindow):
         self.playhead.set_timeline_widgets([self.timeline, self.second_timeline])
         
         main_layout.addWidget(timeline_container)
-        main_layout.addWidget(self.status_label)
-        
-        self.setCentralWidget(main_widget)
-        
-        # Timer for playback
-        self.play_timer = QTimer()
-        self.play_timer.timeout.connect(self.update_playback)
-        self.is_playing = False
-        
-    def set_tool_mode(self, mode):
-        """Set the current editing tool mode"""
-        # Uncheck all tool buttons
-        self.move_btn.setChecked(False)
-        self.cut_btn.setChecked(False)
-        self.split_btn.setChecked(False)
-        self.select_btn.setChecked(False)
-        
-        # Check the selected tool
-        if mode == 'move':
-            self.move_btn.setChecked(True)
-        elif mode == 'cut':
-            self.cut_btn.setChecked(True)
-        elif mode == 'split':
-            self.split_btn.setChecked(True)
-        elif mode == 'select':
-            self.select_btn.setChecked(True)
-        
-        self.current_tool = mode
-        self.status_label.setText(f"État: Mode d'édition: {mode}")
+		main_layout.addWidget(self.status_label)
+		
+		# Connect video preview signals
+		self.video_controller.timeChanged.connect(self.on_video_time_changed)
+		self.video_controller.durationChanged.connect(self.on_video_duration_changed)
+		self.video_controller.playbackStateChanged.connect(self.on_playback_state_changed)
+		
+		self.setCentralWidget(main_widget)
+		
+		# Timer for playback
+		self.is_playing = False
+	
+	def set_tool_mode(self, mode):
+		"""Set the current editing tool mode"""
+		# Uncheck all tool buttons
+		self.move_btn.setChecked(False)
+		self.cut_btn.setChecked(False)
+		self.split_btn.setChecked(False)
+		self.select_btn.setChecked(False)
+		
+		# Check the selected tool
+		if mode == 'move':
+			self.move_btn.setChecked(True)
+		elif mode == 'cut':
+			self.cut_btn.setChecked(True)
+		elif mode == 'split':
+			self.split_btn.setChecked(True)
+		elif mode == 'select':
+			self.select_btn.setChecked(True)
+		
+		self.current_tool = mode
+		self.status_label.setText(f"État: Mode d'édition: {mode}")
     def create_toolbar(self, layout):
         """Create the top toolbar with editing tools"""
         """Create the toolbar to be placed under the video preview"""
@@ -290,26 +295,22 @@ class VideoEditor(QMainWindow):
     def zoom_in(self):
         """Handle zoom in action"""
         self.status_label.setText("État: Zoom avant")
+	
         # In a real implementation, this would zoom in the timeline
     
     def zoom_out(self):
         """Handle zoom out action"""
         self.status_label.setText("État: Zoom arrière")
     
-    def import_video(self):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Sélectionner une vidéo", "", "Fichiers vidéo (*.mp4 *.avi *.mov *.mkv)"
-        )
-        
-        if file_path:
-            try:
-                self.source_video_path = file_path
-                self.source_video = VideoFileClip(file_path)
-                # self.add_track_btn.setEnabled(True)
-                self.export_btn.setEnabled(True)
-                self.position_slider.setEnabled(True)
-                
-                # Update timeline with video duration
+	def import_video(self, file_path: str):
+		file_path, _ = QFileDialog.getOpenFileName(
+			self, "Sélectionner une vidéo", "", "Fichiers vidéo (*.mp4 *.avi *.mov *.mkv)"
+		)
+		if self.video_controller.load_video(file_path):
+			
+			# TODO: Revoir pour ne garder que le payload playHead
+			"""
+			# Update timeline with video duration
                 self.timeline.set_duration(self.source_video.duration)
                 # Update all timelines with duration
                 for timeline in self.timelines:
@@ -345,10 +346,16 @@ class VideoEditor(QMainWindow):
                 
                 # Add to tracks layout
                 self.tracks_layout.insertWidget(self.tracks_layout.count() - 1, track_item)
-                self.status_label.setText(f"État: Vidéo ajoutée - {os.path.basename(file_path)}")
-                    
-            except Exception as e:
-                self.status_label.setText(f"Erreur: {str(e)}")
+                self.status_label.setText(f"État: Vidéo ajoutée - {os.path.basename(file_path)}"
+			"""
+			
+			self.source_video_path = file_path
+			self.source_video = self.video_controller.clip
+			self.status_label.setText(f"État: Vidéo chargée - {os.path.basename(file_path)}")
+			self.add_track_btn.setEnabled(True)
+			self.export_btn.setEnabled(True)
+		else:
+			self.status_label.setText("Erreur: Impossible de charger la vidéo")
     
     def add_track(self):
         if not self.source_video:
@@ -397,18 +404,12 @@ class VideoEditor(QMainWindow):
             self.status_label.setText(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
     
     def toggle_play(self):
-        if not self.source_video:
+		if not self.video_controller.clip:
             return
-            
-        if self.is_playing:
-            self.play_timer.stop()
-            self.play_btn.setText("▶")
-            self.is_playing = False
-        else:
-            self.play_timer.start(30)  # ~33fps
-            self.play_btn.setText("⏸")
-            self.is_playing = True
+        self.video_controller.toggle_play_pause()
+        
     
+    # TODO: mettre à jour puisque playback n'est plus utilisé
     def update_playback(self):
         if not self.source_video:
             return
@@ -423,28 +424,27 @@ class VideoEditor(QMainWindow):
         # Update UI
         self.position_slider.setValue(int(self.current_play_time * 1000))
         self.video_preview.current_time = self.current_play_time
-
-        # Update global playhead
-        self.playhead.set_current_time(self.current_play_time)
+        self.timeline.set_current_time(self.current_play_time)
+        self.update_time_display()
         
         # In real app, you'd get the current frame and display it:
         # frame = self.source_video.get_frame(self.current_play_time)
         # self.video_preview.set_frame(frame)
-    
-    def update_time_display(self):
-        if not self.source_video:
-            self.time_label.setText("00:00 / 00:00")
-            return
-            
-        current_min = int(self.current_play_time // 60)
-        current_sec = int(self.current_play_time % 60)
-        total_min = int(self.source_video.duration // 60)
-        total_sec = int(self.source_video.duration % 60)
-        
-        self.time_label.setText(f"{current_min:02d}:{current_sec:02d} / {total_min:02d}:{total_sec:02d}")
-    
-    def undo(self):
-        self.status_label.setText("État: Action annulée")
+	
+	def update_time_display(self):
+		if not self.source_video:
+			self.time_label.setText("00:00 / 00:00")
+			return
+		
+		current_min = int(self.current_play_time // 60)
+		current_sec = int(self.current_play_time % 60)
+		total_min = int(self.source_video.duration // 60)
+		total_sec = int(self.source_video.duration % 60)
+		
+		self.time_label.setText(f"{current_min:02d}:{current_sec:02d} / {total_min:02d}:{total_sec:02d}")
+	
+	def undo(self):
+		self.status_label.setText("État: Action annulée")
         # Implementation would track changes and revert them
     
     def redo(self):
@@ -462,47 +462,87 @@ class VideoEditor(QMainWindow):
         
         return new_timeline
 
-    def export_video(self):
-        if not self.clips:
-            self.status_label.setText("Erreur: Aucun clip à exporter")
-            return
-            
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Exporter la vidéo", "", "Fichiers vidéo (*.mp4)"
-        )
-        
-        if file_path:
-            try:
-                # In a real implementation, this would composite the clips and export
-                self.status_label.setText(f"État: Export en cours vers {file_path}...")
-                
-                # Simulate export progress
-                QTimer.singleShot(2000, lambda: self.status_label.setText(f"État: Vidéo exportée vers {file_path}"))
-                
-            except Exception as e:
-                self.status_label.setText(f"Erreur d'export: {str(e)}")
+	def export_video(self):
+		if not self.clips:
+			self.status_label.setText("Erreur: Aucun clip à exporter")
+			return
+		
+		file_path, _ = QFileDialog.getSaveFileName(
+			self, "Exporter la vidéo", "", "Fichiers vidéo (*.mp4)"
+		)
+		
+		if file_path:
+			try:
+				# In a real implementation, this would composite the clips and export
+				self.status_label.setText(f"État: Export en cours vers {file_path}...")
+				
+				# Simulate export progress
+				QTimer.singleShot(2000, lambda: self.status_label.setText(f"État: Vidéo exportée vers {file_path}"))
+			
+			except Exception as e:
+				self.status_label.setText(f"Erreur d'export: {str(e)}")
+	
+	def on_video_time_changed(self, time):
+		"""Called when video time changes during playback"""
+		self.current_play_time = time
+		self.position_slider.blockSignals(True)
+		self.position_slider.setValue(int(time * 1000))
+		self.position_slider.blockSignals(False)
+		self.timeline.set_current_time(time)
+		self.update_time_display()
+	
+	def on_video_duration_changed(self, duration):
+		"""Called when a new video is loaded"""
+		self.video_preview.video_duration = duration
+		self.position_slider.setRange(0, int(duration * 1000))
+		self.position_slider.setEnabled(True)
+		self.timeline.set_duration(duration)
+		self.update_time_display()
+	
+	def on_playback_state_changed(self, is_playing):
+		"""Called when playback starts or stops"""
+		self.is_playing = is_playing
+		self.play_btn.setText("⏸" if is_playing else "▶")
+	
+	def on_slider_pressed(self):
+		"""Pause when user grabs the slider"""
+		if self.is_playing:
+			self.video_controller.pause()
+			self._was_playing = True
+		else:
+			self._was_playing = False
+	
+	def on_slider_moved(self, value):
+		"""Update video position as slider moves"""
+		time = value / 1000.0
+		self.video_controller.seek(time)
+	
+	def on_slider_released(self):
+		"""Resume playback if it was playing before"""
+		if hasattr(self, '_was_playing') and self._was_playing:
+			self.video_controller.play()
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    editor = VideoEditor()
-    
-    # Create menu bar
-    menu_bar = editor.menuBar()
-    
-    # File menu
-    file_menu = menu_bar.addMenu("Fichier")
-    import_action = file_menu.addAction("Importer une vidéo")
-    import_action.triggered.connect(editor.import_video)
-    
-    export_action = file_menu.addAction("Exporter la vidéo")
-    export_action.triggered.connect(editor.export_video)
-    export_action.setEnabled(False)
-    editor.export_btn = export_action  # Store reference for enabling later
-    
-    file_menu.addSeparator()
-    exit_action = file_menu.addAction("Quitter")
-    exit_action.triggered.connect(app.quit)
-    
-    editor.show()
-    sys.exit(app.exec())
+	app = QApplication(sys.argv)
+	editor = VideoEditor()
+	
+	# Create menu bar
+	menu_bar = editor.menuBar()
+	
+	# File menu
+	file_menu = menu_bar.addMenu("Fichier")
+	import_action = file_menu.addAction("Importer une vidéo")
+	import_action.triggered.connect(editor.import_video)
+	
+	export_action = file_menu.addAction("Exporter la vidéo")
+	export_action.triggered.connect(editor.export_video)
+	export_action.setEnabled(False)
+	editor.export_btn = export_action  # Store reference for enabling later
+	
+	file_menu.addSeparator()
+	exit_action = file_menu.addAction("Quitter")
+	exit_action.triggered.connect(app.quit)
+	
+	editor.show()
+	sys.exit(app.exec())

@@ -1,42 +1,53 @@
-from PySide6.QtWidgets import (QWidget, QSizePolicy)
+from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPainter, QBrush, QPen, QColor
+from PySide6.QtGui import QPainter, QBrush, QColor, QImage, QPixmap
 
 
 class VideoPreviewWidget(QWidget):
-    """Widget to display video preview"""
+    """Widget that just draws frames (no MoviePy logic)."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(400, 300)
-        self.setStyleSheet("background-color: #000000;")
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.current_frame = None
-        self.video_duration = 0
-        self.current_time = 0
-        
+        self.setMinimumSize(768, 432)
+        self.setStyleSheet("background-color: #000;")
+        self.current_pixmap = None
+
     def set_frame(self, frame):
-        """Set the current frame to display"""
-        self.current_frame = frame
+        """Receive a numpy frame (from MoviePy) and convert to QPixmap."""
+        if frame is None:
+            self.current_pixmap = None
+            self.update()
+            return
+
+        h, w, ch = frame.shape
+        bytes_per_line = ch * w
+
+        if ch == 3:
+            q_image = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        elif ch == 4:
+            q_image = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGBA8888)
+        else:
+            return
+
+        self.current_pixmap = QPixmap.fromImage(q_image)
         self.update()
-        
+
     def paintEvent(self, event):
-        """Draw the current frame"""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+
         painter.setBrush(QBrush(QColor(0, 0, 0)))
         painter.drawRect(self.rect())
-        
-        if self.current_frame:
-            # Here you would draw the actual video frame
-            # This is a placeholder - in real implementation you'd convert the frame to QImage
-            painter.setBrush(QBrush(QColor(50, 50, 50)))
-            painter.drawRect(10, 10, self.width()-20, self.height()-20)
-            painter.setPen(QColor(200, 200, 200))
-            painter.drawText(self.rect(), Qt.AlignCenter, "Video Preview")
-        
-        # Draw playhead
-        if self.video_duration > 0:
-            ratio = self.current_time / self.video_duration
-            x = int(ratio * self.width())
-            painter.setPen(QPen(QColor(255, 0, 0), 2))
-            painter.drawLine(x, 0, x, self.height())
+
+        if self.current_pixmap:
+            scaled = self.current_pixmap.scaled(
+                self.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+        else:
+            painter.setPen(QColor(100, 100, 100))
+            painter.drawText(self.rect(), Qt.AlignCenter, "Aucune vidéo chargée")
