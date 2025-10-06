@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import QWidget
-from PySide6.QtGui import Qt, QPainter, QBrush, QColor
+from PySide6.QtGui import Qt, QPainter, QBrush, QColor, QWheelEvent, QMouseEvent
 
 
 class TimelineWidget(QWidget):
-    """Custom widget for the timeline with multiple tracks"""
+    """Custom widget for the timeline with multiple tracks + zoom & scroll"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -13,6 +13,7 @@ class TimelineWidget(QWidget):
 
         # Interaction
         self.dragging = False
+        self.last_mouse_x = None
 
         # Zoom & Scroll
         self.zoom_factor = 1.0   # 1.0 = toute la vidéo visible
@@ -63,6 +64,69 @@ class TimelineWidget(QWidget):
         visible_duration = self.video_duration / self.zoom_factor
         start_time = self.scroll_offset
         return (x / self.width()) * visible_duration + start_time
+
+    # ==========================
+    # Contrôles Zoom & Scroll
+    # ==========================
+    def zoomIn(self):
+        self.zoom_factor = min(self.zoom_factor * 1.25, 50.0)  # max zoom x50
+        self.update()
+
+    def zoomOut(self):
+        self.zoom_factor = max(self.zoom_factor / 1.25, 1.0)   # min = fit all
+        self.update()
+
+    def scrollLeft(self):
+        visible_duration = self.video_duration / self.zoom_factor
+        self.scroll_offset = max(0, self.scroll_offset - visible_duration * 0.1)
+        self.update()
+
+    def scrollRight(self):
+        visible_duration = self.video_duration / self.zoom_factor
+        max_offset = max(0, self.video_duration - visible_duration)
+        self.scroll_offset = min(max_offset, self.scroll_offset + visible_duration * 0.1)
+        self.update()
+
+    # ==========================
+    # Événements souris
+    # ==========================
+    def wheelEvent(self, event: QWheelEvent):
+        """Molette = zoom (Ctrl enfoncé) ou scroll horizontal sinon"""
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            if event.angleDelta().y() > 0:
+                self.zoomIn()
+            else:
+                self.zoomOut()
+        else:
+            if event.angleDelta().y() > 0:
+                self.scrollLeft()
+            else:
+                self.scrollRight()
+
+    def mousePressEvent(self, event: QMouseEvent):
+        """Drag pour panner"""
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self.dragging = True
+            self.last_mouse_x = event.x()
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        if self.dragging and self.last_mouse_x is not None:
+            dx = event.x() - self.last_mouse_x
+            visible_duration = self.video_duration / self.zoom_factor
+            seconds_per_px = visible_duration / self.width()
+            self.scroll_offset = max(0, self.scroll_offset - dx * seconds_per_px)
+
+            # clamp
+            max_offset = max(0, self.video_duration - visible_duration)
+            self.scroll_offset = min(self.scroll_offset, max_offset)
+
+            self.last_mouse_x = event.x()
+            self.update()
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self.dragging = False
+            self.last_mouse_x = None
 
     # ==========================
     # Rendu

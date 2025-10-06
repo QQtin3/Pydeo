@@ -156,7 +156,7 @@ class VideoEditor(QMainWindow):
         self.importVideoBtn.setEnabled(True)
         trackBtnLayout.addWidget(self.importVideoBtn)
 
-        
+        """
         self.addTrackBtn = QPushButton("Ajouter une piste")
         self.addTrackBtn.clicked.connect(self.addTrack)
         self.addTrackBtn.setEnabled(False)
@@ -165,6 +165,7 @@ class VideoEditor(QMainWindow):
         self.removeTrackBtn = QPushButton("Supprimer piste")
         self.removeTrackBtn.setEnabled(False)
         trackBtnLayout.addWidget(self.removeTrackBtn)
+        """
         
         sourcesLayout.addLayout(trackBtnLayout)
 
@@ -386,12 +387,31 @@ class VideoEditor(QMainWindow):
                 self.tracks_layout.insertWidget(self.tracks_layout.count() - 1, track_item)
                 self.status_label.setText(f"État: Vidéo ajoutée - {os.path.basename(file_path)}"
 			"""
+
 			
             self.sourceVideoPath = filePath
             self.sourceVideo = self.videoController.clip
+
+            # Create track item
+            trackItem = QWidget()
+            trackLayout = QHBoxLayout(trackItem)
+            trackLayout.setContentsMargins(5, 2, 5, 2)
+            
+            # Clip info
+            duration = self.sourceVideo.duration
+            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or "")} [{duration:.1f}s]")
+            clipInfo.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
+            trackLayout.addWidget(clipInfo, 1)
+            
+            # Duration
+            durationLabel = QLabel(f"{duration:.1f}s")
+            durationLabel.setStyleSheet("min-width: 50px; text-align: right;")
+            trackLayout.addWidget(durationLabel)
+            
+            # Add to tracks layout
+            self.tracksLayout.insertWidget(self.tracksLayout.count() - 1, trackItem)
+            
             self.statusLabel.setText(f"État: Vidéo chargée - {os.path.basename(filePath)}")
-            self.addTrackBtn.setEnabled(True)
-            self.exportBtn.setEnabled(True)
         else:
             self.statusLabel.setText("Erreur: Impossible de charger la vidéo")
     
