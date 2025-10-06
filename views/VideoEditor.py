@@ -399,7 +399,7 @@ class VideoEditor(QMainWindow):
             
             # Clip info
             duration = self.sourceVideo.duration
-            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or "")} [{duration:.1f}s]")
+            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or "")}")
             clipInfo.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
             trackLayout.addWidget(clipInfo, 1)
             
