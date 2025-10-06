@@ -18,24 +18,24 @@ class TimelineWidget(QWidget):
             "text": []
         }
 
-    def add_clip(self, clip, track_type="video"):
+    def addClip(self, clip, track_type="video"):
         """Add a clip to a specific track"""
         if track_type in self.tracks:
             self.tracks[track_type].append(clip)
             self.update()
 
-    def set_current_time(self, time):
+    def setCurrentTime(self, time):
         """Set the current play position"""
         self.current_time = time
         self.update()
 
-    def set_current_time_to_cursor(self, pos_x):
+    def setCurrentTimeToCursor(self, pos_x):
         """Set the current play position to the cursor position"""
         if self.video_duration > 0:
             ratio = pos_x / self.width()
             self.set_current_time(ratio * self.video_duration)
 
-    def set_duration(self, duration):
+    def setDuration(self, duration):
         """Set the total video duration"""
         self.video_duration = duration
         self.update()
