@@ -12,7 +12,7 @@ from model.TimelineClip import TimelineClip
 from .ClipDialog import ClipDialog
 from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
-from .PlayHead import PlayHead
+from .Playhead import PlayHead
 from .VideoPreviewWidget import VideoPreviewWidget
 
 # from ..FileHandlerController import readVideoFile
