@@ -1,11 +1,13 @@
 from PySide6.QtWidgets import QApplication
 import sys
 from views.VideoEditor import VideoEditor
+from styles import get_styles
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    # stylesheet   
+    app.setStyleSheet(get_styles())
     editor = VideoEditor()
-    
     # Create menu bar
     menu_bar = editor.menuBar()
     
