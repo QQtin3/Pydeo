@@ -182,5 +182,6 @@ class TimelineController(QWidget):
         self.playhead.update()
         self.time_scale_widget.update()
         for timeline in self.timelines:
-            timeline.paintEvent(None, self.zoom_factor, self.scroll_offset)
+            timeline.paintEvent(None)
+            timeline.setZoomAndScroll(self.zoom_factor, self.scroll_offset)
             timeline.update()

@@ -13,6 +13,9 @@ class TimelineWidget(QWidget):
         self.video_duration = 0
         self.current_time = 0
 
+        self.zoom_factor = 1.0
+        self.scroll_offset = 0.0
+
         # Tracks
         self.tracks = {
             "video": [],
@@ -86,46 +89,59 @@ class TimelineWidget(QWidget):
     # ==========================
     # Rendu
     # ==========================
-    def paintEvent(self, event, zoom_factor, scroll_offset):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setRenderHint(QPainter.TextAntialiasing)
+    def setZoomAndScroll(self, zoom_factor, scroll_offset):
+        self.zoom_factor = zoom_factor
+        self.scroll_offset = scroll_offset
+        self.update()  # redessine le widget
 
-        # Background
-        painter.setBrush(QBrush(QColor(40, 40, 40)))
-        painter.drawRect(self.rect())
+    def paintEvent(self, event):
+        with QPainter(self) as painter:
+            rect = self.rect()
+            painter.fillRect(rect, QColor("#1e1e1e"))
+
+            if self.video_duration <= 0:
+                return
+
+            visible_duration = self.video_duration / self.zoom_factor
+            visible_start = self.scroll_offset
+            visible_end = visible_start + visible_duration
+
+            total_pixels = rect.width()
+            pixels_per_second = total_pixels / visible_duration
+
+            tick_interval = max(1, int(visible_duration / 10))
+            for t in range(int(visible_start), int(visible_end) + 1, tick_interval):
+                x = (t - visible_start) * pixels_per_second
+                painter.setPen(QColor("#888"))
+                painter.drawLine(int(x), 0, int(x), rect.height())
+                painter.drawText(int(x) + 2, 12, f"{t:.0f}s")
+
+            if visible_start <= self.current_time <= visible_end:
+                x = (self.current_time - visible_start) * pixels_per_second
+                painter.setPen(QColor("red"))
+                painter.drawLine(int(x), 0, int(x), rect.height())
+
 
         if self.video_duration <= 0:
             return
 
-        # Visible range for optimization
-        visible_duration = self.video_duration / zoom_factor
-        visible_start = scroll_offset
+        visible_duration = self.video_duration / self.zoom_factor
+        visible_start = self.scroll_offset
         visible_end = visible_start + visible_duration
 
-        # Dynamic track height
-        track_height = (self.height()) // len(self.tracks) if self.tracks else 60
+        total_pixels = rect.width()
+        pixels_per_second = total_pixels / visible_duration
 
-        for idx, (track_type, clips) in enumerate(self.tracks.items()):
-            y_offset = idx * track_height
+        # lignes verticales
+        tick_interval = max(1, int(visible_duration / 10))
+        for t in range(int(visible_start), int(visible_end) + 1, tick_interval):
+            x = (t - visible_start) * pixels_per_second
+            painter.setPen(QColor("#888"))
+            painter.drawLine(int(x), 0, int(x), rect.height())
+            painter.drawText(int(x) + 2, 12, f"{t:.0f}s")
 
-            # Ligne séparatrice
-            painter.setPen(QColor(80, 80, 80))
-            painter.drawLine(0, y_offset - 10, self.width(), y_offset - 10)
-
-            # Clips (optimized)
-            for clip in clips:
-                if clip['end'] >= visible_start and clip['start'] <= visible_end:
-                    start_x = self.timeToX(clip['start'], zoom_factor, scroll_offset)
-                    end_x = self.timeToX(clip['end'], zoom_factor, scroll_offset)
-                    w = max(10, end_x - start_x)
-
-                    painter.setBrush(QBrush(self.track_colors[track_type]))
-                    painter.setPen(Qt.NoPen)
-                    painter.drawRoundedRect(start_x, y_offset, w, track_height - 15, 5, 5)
-
-                    # Label with truncation
-                    painter.setPen(QColor(255, 255, 255))
-                    font_metrics = QFontMetrics(painter.font())
-                    truncated_name = font_metrics.elidedText(clip['name'], Qt.ElideRight, w - 10)
-                    painter.drawText(start_x + 5, y_offset + track_height // 2, truncated_name)
+        # curseur de lecture
+        if visible_start <= self.current_time <= visible_end:
+            x = (self.current_time - visible_start) * pixels_per_second
+            painter.setPen(QColor("red"))
+            painter.drawLine(int(x), 0, int(x), rect.height())
