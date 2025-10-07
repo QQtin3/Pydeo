@@ -1,9 +1,11 @@
 from PySide6.QtWidgets import QWidget
-from PySide6.QtGui import Qt, QPainter, QBrush, QColor, QWheelEvent, QMouseEvent
-
+from PySide6.QtGui import Qt, QPainter, QBrush, QColor, QMouseEvent, QFontMetrics
+from PySide6.QtCore import Signal
 
 class TimelineWidget(QWidget):
-    """Custom widget for the timeline with multiple tracks + zoom & scroll"""
+    """Custom widget for a single timeline with multiple tracks."""
+
+    currentTimeChanged = Signal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -11,127 +13,80 @@ class TimelineWidget(QWidget):
         self.video_duration = 0
         self.current_time = 0
 
-        # Interaction
-        self.dragging = False
-        self.last_mouse_x = None
-
-        # Zoom & Scroll
-        self.zoom_factor = 1.0   # 1.0 = toute la vidéo visible
-        self.scroll_offset = 0.0 # en secondes
-
-        # Séparation des pistes
+        # Tracks
         self.tracks = {
             "video": [],
             "audio": [],
             "text": []
         }
 
+        # Colors
+        self.track_colors = {
+            "video": QColor(60, 120, 200, 200),
+            "audio": QColor(200, 120, 60, 200),
+            "text": QColor(120, 200, 120, 200)
+        }
+
     # ==========================
     # Gestion des clips & temps
     # ==========================
     def addClip(self, clip, track_type="video"):
-        """Add a clip to a specific track"""
-        if track_type in self.tracks:
-            self.tracks[track_type].append(clip)
-            self.update()
+        """Add a clip to a specific track with validation."""
+        if track_type in self.tracks and isinstance(clip, dict) and all(k in clip for k in ['start', 'end', 'name']):
+            if 0 <= clip['start'] <= clip['end'] <= self.video_duration:
+                self.tracks[track_type].append(clip)
+                self.update()
+            else:
+                print(f"Invalid clip times: {clip}")
+        else:
+            print(f"Invalid track type {track_type} or clip format: {clip}")
 
     def setCurrentTime(self, time):
-        """Set the current play position"""
+        """Set the current play position."""
         self.current_time = max(0, min(time, self.video_duration))
+        self.currentTimeChanged.emit(self.current_time)
         self.update()
 
-    def setCurrentTimeToCursor(self, pos_x):
-        """Set the current play position to the cursor position"""
+    def setCurrentTimeToCursor(self, pos_x, zoom_factor, scroll_offset):
+        """Set the current play position to the cursor position."""
         if self.video_duration > 0:
-            self.setCurrentTime(self.xToTime(pos_x))
+            self.setCurrentTime(self.xToTime(pos_x, zoom_factor, scroll_offset))
 
     def setDuration(self, duration):
-        """Set the total video duration"""
+        """Set the total video duration."""
         self.video_duration = duration
         self.update()
 
     # ==========================
     # Conversion temps <-> X
     # ==========================
-    def timeToX(self, t):
-        """Convertir un temps (s) en position X (px)"""
-        visible_duration = self.video_duration / self.zoom_factor
-        start_time = self.scroll_offset
+    def timeToX(self, t, zoom_factor, scroll_offset):
+        """Convert time (s) to position X (px)."""
+        if self.width() == 0:
+            return 0
+        visible_duration = self.video_duration / zoom_factor
+        start_time = scroll_offset
         return int(((t - start_time) / visible_duration) * self.width())
 
-    def xToTime(self, x):
-        """Convertir une position X (px) en temps (s)"""
-        visible_duration = self.video_duration / self.zoom_factor
-        start_time = self.scroll_offset
+    def xToTime(self, x, zoom_factor, scroll_offset):
+        """Convert position X (px) to time (s)."""
+        if self.width() == 0:
+            return 0
+        visible_duration = self.video_duration / zoom_factor
+        start_time = scroll_offset
         return (x / self.width()) * visible_duration + start_time
-
-    # ==========================
-    # Contrôles Zoom & Scroll
-    # ==========================
-    def zoomIn(self):
-        self.zoom_factor = min(self.zoom_factor * 1.25, 50.0)  # max zoom x50
-        self.update()
-
-    def zoomOut(self):
-        self.zoom_factor = max(self.zoom_factor / 1.25, 1.0)   # min = fit all
-        self.update()
-
-    def scrollLeft(self):
-        visible_duration = self.video_duration / self.zoom_factor
-        self.scroll_offset = max(0, self.scroll_offset - visible_duration * 0.1)
-        self.update()
-
-    def scrollRight(self):
-        visible_duration = self.video_duration / self.zoom_factor
-        max_offset = max(0, self.video_duration - visible_duration)
-        self.scroll_offset = min(max_offset, self.scroll_offset + visible_duration * 0.1)
-        self.update()
 
     # ==========================
     # Événements souris
     # ==========================
-    def wheelEvent(self, event: QWheelEvent):
-        """Molette = zoom (Ctrl enfoncé) ou scroll horizontal sinon"""
-        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            if event.angleDelta().y() > 0:
-                self.zoomIn()
-            else:
-                self.zoomOut()
-        else:
-            if event.angleDelta().y() > 0:
-                self.scrollLeft()
-            else:
-                self.scrollRight()
-
     def mousePressEvent(self, event: QMouseEvent):
-        """Drag pour panner"""
-        if event.button() == Qt.MouseButton.MiddleButton:
-            self.dragging = True
-            self.last_mouse_x = event.x()
-
-    def mouseMoveEvent(self, event: QMouseEvent):
-        if self.dragging and self.last_mouse_x is not None:
-            dx = event.x() - self.last_mouse_x
-            visible_duration = self.video_duration / self.zoom_factor
-            seconds_per_px = visible_duration / self.width()
-            self.scroll_offset = max(0, self.scroll_offset - dx * seconds_per_px)
-
-            # clamp
-            max_offset = max(0, self.video_duration - visible_duration)
-            self.scroll_offset = min(self.scroll_offset, max_offset)
-
-            self.last_mouse_x = event.x()
-            self.update()
-
-    def mouseReleaseEvent(self, event: QMouseEvent):
-        if event.button() == Qt.MouseButton.MiddleButton:
-            self.dragging = False
-            self.last_mouse_x = None
+        """Handle mouse press for playhead setting (delegated to controller)."""
+        super().mousePressEvent(event)
 
     # ==========================
     # Rendu
     # ==========================
-    def paintEvent(self, event):
+    def paintEvent(self, event, zoom_factor, scroll_offset):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setRenderHint(QPainter.TextAntialiasing)
@@ -143,46 +98,34 @@ class TimelineWidget(QWidget):
         if self.video_duration <= 0:
             return
 
-        # Graduation temporelle
-        painter.setPen(QColor(150, 150, 150))
-        step_px = 50  # tous les 50px
+        # Visible range for optimization
+        visible_duration = self.video_duration / zoom_factor
+        visible_start = scroll_offset
+        visible_end = visible_start + visible_duration
 
-        for i in range(0, self.width(), step_px):
-            t = self.xToTime(i)
-            if t < 0 or t > self.video_duration:
-                continue
-
-            painter.drawLine(i, 0, i, 20)
-            if i % 100 == 0:  # un texte toutes les 100px
-                minutes = int(t // 60)
-                seconds = int(t % 60)
-                painter.drawText(i + 5, 15, f"{minutes}:{seconds:02d}")
-
-        # Dessin des pistes
-        track_height = 60
-        track_colors = {
-            "video": QColor(60, 120, 200, 200),
-            "audio": QColor(200, 120, 60, 200),
-            "text": QColor(120, 200, 120, 200)
-        }
+        # Dynamic track height
+        track_height = (self.height()) // len(self.tracks) if self.tracks else 60
 
         for idx, (track_type, clips) in enumerate(self.tracks.items()):
-            y_offset = 40 + idx * track_height
+            y_offset = idx * track_height
 
             # Ligne séparatrice
             painter.setPen(QColor(80, 80, 80))
             painter.drawLine(0, y_offset - 10, self.width(), y_offset - 10)
 
-            # Clips
+            # Clips (optimized)
             for clip in clips:
-                start_x = self.timeToX(clip['start'])
-                end_x = self.timeToX(clip['end'])
-                w = max(10, end_x - start_x)
+                if clip['end'] >= visible_start and clip['start'] <= visible_end:
+                    start_x = self.timeToX(clip['start'], zoom_factor, scroll_offset)
+                    end_x = self.timeToX(clip['end'], zoom_factor, scroll_offset)
+                    w = max(10, end_x - start_x)
 
-                painter.setBrush(QBrush(track_colors[track_type]))
-                painter.setPen(Qt.NoPen)
-                painter.drawRoundedRect(start_x, y_offset, w, track_height - 15, 5, 5)
+                    painter.setBrush(QBrush(self.track_colors[track_type]))
+                    painter.setPen(Qt.NoPen)
+                    painter.drawRoundedRect(start_x, y_offset, w, track_height - 15, 5, 5)
 
-                # Label
-                painter.setPen(QColor(255, 255, 255))
-                painter.drawText(start_x + 5, y_offset + track_height // 2, clip['name'])
+                    # Label with truncation
+                    painter.setPen(QColor(255, 255, 255))
+                    font_metrics = QFontMetrics(painter.font())
+                    truncated_name = font_metrics.elidedText(clip['name'], Qt.ElideRight, w - 10)
+                    painter.drawText(start_x + 5, y_offset + track_height // 2, truncated_name)

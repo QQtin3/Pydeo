@@ -1,15 +1,9 @@
 from PySide6.QtWidgets import QWidget
 from PySide6.QtGui import QPainter, QPen, QColor, QResizeEvent
-
 from views.TimelineWidget import TimelineWidget
 
 class PlayHead(QWidget):
     """Widget that draws the global play head above timelines"""
-
-    videoDuration: float
-    currentTime: float
-    timelineWidgets: list[TimelineWidget]
-    spacing: int
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -18,6 +12,8 @@ class PlayHead(QWidget):
         self.currentTime = 0
         self.timelineWidgets = []
         self.spacing = 5
+        self.zoom_factor = 1.0
+        self.scroll_offset = 0.0
 
     def setCurrentTime(self, time: float) -> None:
         """Update playback time"""
@@ -39,16 +35,19 @@ class PlayHead(QWidget):
         self.spacing = spacing
         self.update()
 
+    def setZoomAndScroll(self, zoom_factor: float, scroll_offset: float) -> None:
+        """Set zoom and scroll parameters"""
+        self.zoom_factor = zoom_factor
+        self.scroll_offset = scroll_offset
+        self.update()
+
     def resizeEvent(self, event: QResizeEvent) -> None:
         """Resize widget to cover all timelines"""
         super().resizeEvent(event)
         if self.parent() and self.timelineWidgets:
-            # Calculate total height of timelines + spacing
             total_height = sum(widget.height() for widget in self.timelineWidgets)
-            # Add spacing between timelines (n-1 spaces for n timelines)
             if len(self.timelineWidgets) > 1:
                 total_height += (len(self.timelineWidgets) - 1) * self.spacing
-            # Position playhead above all timelines
             self.setGeometry(0, 0, self.parent().width(), total_height)
 
     def paintEvent(self, event):
@@ -60,8 +59,8 @@ class PlayHead(QWidget):
         painter.fillRect(self.rect(), QColor(0, 0, 0, 0))
 
         if self.videoDuration > 0 and self.timelineWidgets:
-            # Utiliser la timeline pour convertir le temps en position X
-            x = self.timelineWidgets[0].timeToX(self.currentTime)
+            # Use timeline's timeToX with zoom and scroll
+            x = self.timelineWidgets[0].timeToX(self.currentTime, self.zoom_factor, self.scroll_offset)
 
             # Draw vertical line across the entire widget
             painter.setPen(QPen(QColor(255, 0, 0), 2))

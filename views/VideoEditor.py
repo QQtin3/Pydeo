@@ -9,11 +9,11 @@ import os
 
 from controller.VideoPreviewController import VideoPreviewController
 from model.TimelineClip import TimelineClip
-from .ClipDialog import ClipDialog
-from .EffectsTab import EffectsTab
-from .TimelineWidget import TimelineWidget
-from .PlayHead import PlayHead
-from .VideoPreviewWidget import VideoPreviewWidget
+from views.ClipDialog import ClipDialog
+from views.EffectsTab import EffectsTab
+from views.TimelineWidget import TimelineWidget
+from views.PlayHead import PlayHead
+from views.VideoPreviewWidget import VideoPreviewWidget
 
 # from ..FileHandlerController import readVideoFile
 
