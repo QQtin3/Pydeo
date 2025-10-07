@@ -83,6 +83,7 @@ class VideoEditor(QMainWindow):
         # Transport controls
         transportLayout = QHBoxLayout()
         self.playBtn = QPushButton("▶")
+        self.playBtn.setObjectName("play_button")
         self.playBtn.setFixedSize(30, 30)
         self.playBtn.clicked.connect(self.togglePlay)
         transportLayout.addWidget(self.playBtn)
@@ -109,30 +110,6 @@ class VideoEditor(QMainWindow):
 		# === Create tabs for Sources and Effects ===
         self.tabs = QTabWidget()
         self.tabs.setTabBarAutoHide(False)
-        self.tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #555;
-                background: #333;
-            }
-            QTabBar {
-                background: #444;
-            }
-            QTabBar::tab {
-                background: #555;
-                border: 1px solid #444;
-                padding: 5px 10px;
-                margin-right: 2px;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-            }
-            QTabBar::tab:selected {
-                background: #666;
-                border-bottom-color: #333;
-            }
-            QTabBar::tab:hover {
-                background: #606060;
-            }
-        """)
 
         # Sources tab
         sourcesTab = QWidget()
@@ -254,7 +231,6 @@ class VideoEditor(QMainWindow):
         """Create the top toolbar with editing tools"""
         """Create the toolbar to be placed under the video preview"""
         toolbarWidget = QWidget()
-        toolbarWidget.setStyleSheet("background-color: #3a3a3a; border-top: 1px solid #555; border-bottom: 1px solid #555;")
         toolbarLayout = QHBoxLayout(toolbarWidget)
         toolbarLayout.setContentsMargins(5, 2, 5, 2)
         toolbarLayout.setSpacing(8)
@@ -374,7 +350,7 @@ class VideoEditor(QMainWindow):
                 
                 # Clip info
                 clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath)}")
-                clipInfo.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
+                clipInfo.setObjectName("clip_info")
                 trackLayout.addWidget(clipInfo, 1)
                 
                 # Duration
@@ -399,8 +375,8 @@ class VideoEditor(QMainWindow):
             
             # Clip info
             duration = self.sourceVideo.duration
-            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or "")}")
-            clipInfo.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
+            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or '')}")
+            clipInfo.setObjectName("clip_info")
             trackLayout.addWidget(clipInfo, 1)
             
             # Duration
@@ -438,8 +414,8 @@ class VideoEditor(QMainWindow):
             trackLayout.setContentsMargins(5, 2, 5, 2)
             
             # Clip info
-            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or "")} [{start:.1f}s - {end:.1f}s]")
-            clipInfo.setStyleSheet("background-color: #3a3a3a; padding: 5px; border-radius: 3px;")
+            clipInfo = QLabel(f"{os.path.basename(self.sourceVideoPath or '')} [{start:.1f}s - {end:.1f}s]")
+            clipInfo.setObjectName("clip_info")
             trackLayout.addWidget(clipInfo, 1)
             
             # Duration

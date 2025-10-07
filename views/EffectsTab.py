@@ -21,18 +21,6 @@ class EffectsTab(QWidget):
         
         for effect in effects:
             btn = QPushButton(effect)
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #4a4a4a;
-                    border: 1px solid #5a5a5a;
-                    border-radius: 4px;
-                    padding: 5px;
-                    margin: 2px 0;
-                }
-                QPushButton:hover {
-                    background-color: #5a5a5a;
-                }
-            """)
             layout.addWidget(btn)
         
         layout.addStretch()
