@@ -26,14 +26,14 @@ def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None, int]:
     
     return clip, audio, clip.fps
 
-def readAudioFile(path: str) -> AudioClip:
+def readAudioFile(path: str) -> tuple[AudioClip, int]:
     """Open an audio file and return AudioClip object
 
     Args:
         path (str): the path of the file. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus.
 
     Returns:
-        tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
+        tuple[AudioClip, int]: Clips extracted from the given file and its frequency
         
     Raises:
         FileNotFoundError: The specified location is not an existing file
@@ -47,7 +47,7 @@ def readAudioFile(path: str) -> AudioClip:
     
     audio = AudioFileClip(path)
     
-    return audio
+    return audio, audio.fps
 
 def readImageFile(path: str) -> ImageClip:
     """Open an image file and return ImageClip object
