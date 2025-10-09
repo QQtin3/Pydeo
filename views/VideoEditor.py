@@ -15,6 +15,7 @@ from .TimelineWidget import TimelineWidget
 from .PlayHead import PlayHead
 from .VideoPreviewWidget import VideoPreviewWidget
 from .StatusManager import StatusManager
+from .ToolBar import Toolbar
 
 # from ..FileHandlerController import readVideoFile
 
@@ -41,6 +42,7 @@ class VideoEditor(QMainWindow):
     secondTimeline: TimelineWidget
     playHead: PlayHead
     statusManager: StatusManager
+    toolbar: Toolbar
     playTimer: QTimer
     isPlaying: bool
     moveBtn: QToolButton
@@ -184,7 +186,8 @@ class VideoEditor(QMainWindow):
         mainSplitter.addWidget(rightWidget)
         mainSplitter.setSizes([800, 400])  # Initial sizes
 
-        self.createToolbar(previewLayout)
+        self.toolbar = Toolbar()
+        previewLayout.addWidget(self.toolbar)
         
         # Timeline area
         self.timeline = TimelineWidget()
@@ -250,88 +253,6 @@ class VideoEditor(QMainWindow):
         
         self.currentTool = mode
         self.statusManager.update_status(f"État: Mode d'édition: {mode}")
-
-    def createToolbar(self, layout: QLayout) -> None:
-        """Create the top toolbar with editing tools"""
-        """Create the toolbar to be placed under the video preview"""
-        toolbarWidget = QWidget()
-        toolbarWidget.setStyleSheet("background-color: #3a3a3a; border-top: 1px solid #555; border-bottom: 1px solid #555;")
-        toolbarLayout = QHBoxLayout(toolbarWidget)
-        toolbarLayout.setContentsMargins(5, 2, 5, 2)
-        toolbarLayout.setSpacing(8)
-        
-        # Undo/Redo
-        undoBtn = QToolButton()
-        undoBtn.setText("↩")
-        undoBtn.setToolTip("Annuler (Ctrl+Z)")
-        undoBtn.setFixedSize(24, 24)
-        undoBtn.clicked.connect(self.undo)
-        toolbarLayout.addWidget(undoBtn)
-        
-        redoBtn = QToolButton()
-        redoBtn.setText("↪")
-        redoBtn.setToolTip("Refaire (Ctrl+Y)")
-        redoBtn.setFixedSize(24, 24)
-        redoBtn.clicked.connect(self.redo)
-        toolbarLayout.addWidget(redoBtn)
-        
-        toolbarLayout.addSpacing(15)
-        
-        # Editing tools (as checkable buttons)
-        self.moveBtn = QToolButton()
-        self.moveBtn.setCheckable(True)
-        self.moveBtn.setChecked(True)
-        self.moveBtn.setText("⤢")
-        self.moveBtn.setToolTip("Déplacer")
-        self.moveBtn.setFixedSize(24, 24)
-        self.moveBtn.clicked.connect(lambda: self.setToolMode('move'))
-        toolbarLayout.addWidget(self.moveBtn)
-        
-        self.cutBtn = QToolButton()
-        self.cutBtn.setCheckable(True)
-        self.cutBtn.setText("✂")
-        self.cutBtn.setToolTip("Couper")
-        self.cutBtn.setFixedSize(24, 24)
-        self.cutBtn.clicked.connect(lambda: self.setToolMode('cut'))
-        toolbarLayout.addWidget(self.cutBtn)
-        
-        self.splitBtn = QToolButton()
-        self.splitBtn.setCheckable(True)
-        self.splitBtn.setText("⌬")
-        self.splitBtn.setToolTip("Scinder")
-        self.splitBtn.setFixedSize(24, 24)
-        self.splitBtn.clicked.connect(lambda: self.setToolMode('split'))
-        toolbarLayout.addWidget(self.splitBtn)
-        
-        self.selectBtn = QToolButton()
-        self.selectBtn.setCheckable(True)
-        self.selectBtn.setText("☐")
-        self.selectBtn.setToolTip("Sélectionner")
-        self.selectBtn.setFixedSize(24, 24)
-        self.selectBtn.clicked.connect(lambda: self.setToolMode('select'))
-        toolbarLayout.addWidget(self.selectBtn)
-        
-        toolbarLayout.addSpacing(15)
-        
-        # Zoom controls
-        zoomInBtn = QToolButton()
-        zoomInBtn.setText("+")
-        zoomInBtn.setToolTip("Zoom avant")
-        zoomInBtn.setFixedSize(24, 24)
-        zoomInBtn.clicked.connect(self.zoomIn)
-        toolbarLayout.addWidget(zoomInBtn)
-        
-        zoomOutButton = QToolButton()
-        zoomOutButton.setText("-")
-        zoomOutButton.setToolTip("Zoom arrière")
-        zoomOutButton.setFixedSize(24, 24)
-        zoomOutButton.clicked.connect(self.zoomOut)
-        toolbarLayout.addWidget(zoomOutButton)
-        
-        toolbarLayout.addStretch()
-        
-        # Add the toolbar to the provided layout (under video preview)
-        layout.addWidget(toolbarWidget)
 
     def zoomIn(self) -> None:
         """Handle zoom in action"""
