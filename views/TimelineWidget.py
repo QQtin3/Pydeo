@@ -1,15 +1,15 @@
 from PySide6.QtWidgets import QWidget
-from PySide6.QtGui import Qt, QPainter, QBrush, QColor, QMouseEvent, QFontMetrics
+from PySide6.QtGui import QPainter, QColor, QMouseEvent
 from PySide6.QtCore import Signal
 
 class TimelineWidget(QWidget):
-    """Custom widget for a single timeline with multiple tracks."""
+    """Custom widget for a single timeline with multiple tracks (no time scale)."""
 
     currentTimeChanged = Signal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumHeight(200)
+        self.setMinimumHeight(120)
         self.video_duration = 0
         self.current_time = 0
 
@@ -50,11 +50,6 @@ class TimelineWidget(QWidget):
         self.currentTimeChanged.emit(self.current_time)
         self.update()
 
-    def setCurrentTimeToCursor(self, pos_x, zoom_factor, scroll_offset):
-        """Set the current play position to the cursor position."""
-        if self.video_duration > 0:
-            self.setCurrentTime(self.xToTime(pos_x, zoom_factor, scroll_offset))
-
     def setDuration(self, duration):
         """Set the total video duration."""
         self.video_duration = duration
@@ -64,7 +59,6 @@ class TimelineWidget(QWidget):
     # Conversion temps <-> X
     # ==========================
     def timeToX(self, t, zoom_factor, scroll_offset):
-        """Convert time (s) to position X (px)."""
         if self.width() == 0:
             return 0
         visible_duration = self.video_duration / zoom_factor
@@ -72,7 +66,6 @@ class TimelineWidget(QWidget):
         return int(((t - start_time) / visible_duration) * self.width())
 
     def xToTime(self, x, zoom_factor, scroll_offset):
-        """Convert position X (px) to time (s)."""
         if self.width() == 0:
             return 0
         visible_duration = self.video_duration / zoom_factor
@@ -80,47 +73,20 @@ class TimelineWidget(QWidget):
         return (x / self.width()) * visible_duration + start_time
 
     # ==========================
-    # Événements souris
-    # ==========================
-    def mousePressEvent(self, event: QMouseEvent):
-        """Handle mouse press for playhead setting (delegated to controller)."""
-        super().mousePressEvent(event)
-
-    # ==========================
-    # Rendu
+    # Zoom/Scroll
     # ==========================
     def setZoomAndScroll(self, zoom_factor, scroll_offset):
         self.zoom_factor = zoom_factor
         self.scroll_offset = scroll_offset
-        self.update()  # redessine le widget
+        self.update()
 
+    # ==========================
+    # Rendu
+    # ==========================
     def paintEvent(self, event):
-        with QPainter(self) as painter:
-            rect = self.rect()
-            painter.fillRect(rect, QColor("#1e1e1e"))
-
-            if self.video_duration <= 0:
-                return
-
-            visible_duration = self.video_duration / self.zoom_factor
-            visible_start = self.scroll_offset
-            visible_end = visible_start + visible_duration
-
-            total_pixels = rect.width()
-            pixels_per_second = total_pixels / visible_duration
-
-            tick_interval = max(1, int(visible_duration / 10))
-            for t in range(int(visible_start), int(visible_end) + 1, tick_interval):
-                x = (t - visible_start) * pixels_per_second
-                painter.setPen(QColor("#888"))
-                painter.drawLine(int(x), 0, int(x), rect.height())
-                painter.drawText(int(x) + 2, 12, f"{t:.0f}s")
-
-            if visible_start <= self.current_time <= visible_end:
-                x = (self.current_time - visible_start) * pixels_per_second
-                painter.setPen(QColor("red"))
-                painter.drawLine(int(x), 0, int(x), rect.height())
-
+        painter = QPainter(self)
+        rect = self.rect()
+        painter.fillRect(rect, QColor("#1e1e1e"))
 
         if self.video_duration <= 0:
             return
@@ -128,19 +94,22 @@ class TimelineWidget(QWidget):
         visible_duration = self.video_duration / self.zoom_factor
         visible_start = self.scroll_offset
         visible_end = visible_start + visible_duration
-
         total_pixels = rect.width()
         pixels_per_second = total_pixels / visible_duration
 
-        # lignes verticales
-        tick_interval = max(1, int(visible_duration / 10))
-        for t in range(int(visible_start), int(visible_end) + 1, tick_interval):
-            x = (t - visible_start) * pixels_per_second
-            painter.setPen(QColor("#888"))
-            painter.drawLine(int(x), 0, int(x), rect.height())
-            painter.drawText(int(x) + 2, 12, f"{t:.0f}s")
+        # Dessin des clips (barres colorées par piste)
+        track_height = rect.height() // len(self.tracks)
+        for i, (track_type, clips) in enumerate(self.tracks.items()):
+            y = i * track_height
+            color = self.track_colors[track_type]
+            for clip in clips:
+                if clip["end"] < visible_start or clip["start"] > visible_end:
+                    continue  # clip hors champ
+                x1 = (clip["start"] - visible_start) * pixels_per_second
+                x2 = (clip["end"] - visible_start) * pixels_per_second
+                painter.fillRect(int(x1), y, int(x2 - x1), track_height - 2, color)
 
-        # curseur de lecture
+        # Curseur de lecture (optionnel : rouge)
         if visible_start <= self.current_time <= visible_end:
             x = (self.current_time - visible_start) * pixels_per_second
             painter.setPen(QColor("red"))
