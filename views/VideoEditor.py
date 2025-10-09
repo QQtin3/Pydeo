@@ -14,6 +14,7 @@ from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
 from .PlayHead import PlayHead
 from .VideoPreviewWidget import VideoPreviewWidget
+from .StatusManager import StatusManager
 
 # from ..FileHandlerController import readVideoFile
 
@@ -39,7 +40,7 @@ class VideoEditor(QMainWindow):
     timeline: TimelineWidget
     secondTimeline: TimelineWidget
     playHead: PlayHead
-    statusLabel: QLabel
+    statusManager: StatusManager
     playTimer: QTimer
     isPlaying: bool
     moveBtn: QToolButton
@@ -197,7 +198,7 @@ class VideoEditor(QMainWindow):
         self.timelines.append(self.secondTimeline)
         
         # Status area
-        self.statusLabel = QLabel("État: Aucune vidéo importée")
+        self.statusManager = StatusManager()
         
         # Add everything to main layout
         mainLayout.addWidget(mainSplitter)
@@ -217,7 +218,7 @@ class VideoEditor(QMainWindow):
         self.playHead.setTimelineWidgets([self.timeline, self.secondTimeline])
         
         mainLayout.addWidget(timelineContainer)
-        mainLayout.addWidget(self.statusLabel)
+        mainLayout.addWidget(self.statusManager.status_label)
         
         # Connect video preview signals
         self.videoController.timeChanged.connect(self.onVideoTimeChanged)
@@ -248,7 +249,7 @@ class VideoEditor(QMainWindow):
             self.selectBtn.setChecked(True)
         
         self.currentTool = mode
-        self.statusLabel.setText(f"État: Mode d'édition: {mode}")
+        self.statusManager.update_status(f"État: Mode d'édition: {mode}")
 
     def createToolbar(self, layout: QLayout) -> None:
         """Create the top toolbar with editing tools"""
@@ -334,12 +335,12 @@ class VideoEditor(QMainWindow):
 
     def zoomIn(self) -> None:
         """Handle zoom in action"""
-        self.statusLabel.setText("État: Zoom avant")
+        self.statusManager.update_status("État: Zoom avant")
         # In a real implementation, this would zoom in the timeline
     
     def zoomOut(self) -> None:
         """Handle zoom out action"""
-        self.statusLabel.setText("État: Zoom arrière")
+        self.statusManager.update_status("État: Zoom arrière")
     
     def importVideo(self, filePath: str):
         filePath, _ = QFileDialog.getOpenFileName(
@@ -411,9 +412,9 @@ class VideoEditor(QMainWindow):
             # Add to tracks layout
             self.tracksLayout.insertWidget(self.tracksLayout.count() - 1, trackItem)
             
-            self.statusLabel.setText(f"État: Vidéo chargée - {os.path.basename(filePath)}")
+            self.statusManager.update_status(f"État: Vidéo chargée - {os.path.basename(filePath)}")
         else:
-            self.statusLabel.setText("Erreur: Impossible de charger la vidéo")
+            self.statusManager.update_status("Erreur: Impossible de charger la vidéo")
     
     def addTrack(self) -> None:
         if not self.sourceVideo:
@@ -425,12 +426,12 @@ class VideoEditor(QMainWindow):
             
             # Validate clip range
             if end <= start:
-                self.statusLabel.setText("Erreur: La fin doit être après le début")
+                self.statusManager.update_status("Erreur: La fin doit être après le début")
                 return
                 
             if end > self.sourceVideo.duration:
                 end = self.sourceVideo.duration
-                self.statusLabel.setText(f"Avertissement: Fin ajustée à la durée maximale ({self.sourceVideo.duration:.1f}s)")
+                self.statusManager.update_status(f"Avertissement: Fin ajustée à la durée maximale ({self.sourceVideo.duration:.1f}s)")
             
             # Create track item
             trackItem = QWidget()
@@ -455,7 +456,7 @@ class VideoEditor(QMainWindow):
             self.clips.append(TimelineClip(os.path.basename(self.sourceVideoPath or ""), start, end))
             self.timeline.addClip(self.clips[-1])
             
-            self.statusLabel.setText(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
+            self.statusManager.update_status(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
     
     def togglePlay(self) -> None:
         if self.sourceVideo is None or not self.sourceVideo:
@@ -498,11 +499,11 @@ class VideoEditor(QMainWindow):
         self.timeLabel.setText(f"{currentMin:02d}:{currentSec:02d} / {totalMin:02d}:{totalSec:02d}")
     
     def undo(self) -> None:
-        self.statusLabel.setText("État: Action annulée")
+        self.statusManager.update_status("État: Action annulée")
         # Implementation would track changes and revert them
     
     def redo(self) -> None:
-        self.statusLabel.setText("État: Action refaite")
+        self.statusManager.update_status("État: Action refaite")
         # Implementation would redo previously undone actions
     
     def addTimeline(self) -> TimelineWidget:
@@ -518,7 +519,7 @@ class VideoEditor(QMainWindow):
 
     def exportVideo(self) -> None:
         if not self.clips:
-            self.statusLabel.setText("Erreur: Aucun clip à exporter")
+            self.statusManager.update_status("Erreur: Aucun clip à exporter")
             return
             
         filePath, _ = QFileDialog.getSaveFileName(
@@ -528,13 +529,13 @@ class VideoEditor(QMainWindow):
         if filePath:
             try:
                 # In a real implementation, this would composite the clips and export
-                self.statusLabel.setText(f"État: Export en cours vers {filePath}...")
+                self.statusManager.update_status(f"État: Export en cours vers {filePath}...")
                 
                 # Simulate export progress
-                QTimer.singleShot(2000, lambda: self.statusLabel.setText(f"État: Vidéo exportée vers {filePath}"))
+                QTimer.singleShot(2000, lambda: self.statusManager.update_status(f"État: Vidéo exportée vers {filePath}"))
                 
             except Exception as e:
-                self.statusLabel.setText(f"Erreur d'export: {str(e)}")
+                self.statusManager.update_status(f"Erreur d'export: {str(e)}")
     
     def onVideoTimeChanged(self, time):
         """Called when video time changes during playback"""
