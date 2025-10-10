@@ -1,10 +1,7 @@
 import os
 
-from moviepy import VideoFileClip
-
 from model.TimelineClip import TimelineClip, TimelineVideoClip, TimelineAudioClip
-from ..controller.FileHandlerController import readVideoFile
-from ..controller.utils.fileExtensions import isFileVideo, isFileAudio
+from controller.utils.fileExtensions import isFileVideo
 
 class Timeline:
     clips: list[TimelineClip]

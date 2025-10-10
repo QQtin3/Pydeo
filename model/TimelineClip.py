@@ -15,6 +15,9 @@ class TimelineClip:
         self.end = end
         self.filePath = filePath
         
+    def getLeTemps(self) -> float:
+        return self.end - self.start
+        
 class TimelineVideoClip(TimelineClip):
     videoClip: VideoClip
     audioClip: AudioClip | None
