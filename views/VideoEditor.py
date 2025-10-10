@@ -14,8 +14,8 @@ from .EffectsTab import EffectsTab
 from .TimelineWidget import TimelineWidget
 from .PlayHead import PlayHead
 from .VideoPreviewWidget import VideoPreviewWidget
-from .StatusManager import StatusManager
-from .ToolBar import Toolbar
+from views.StatusManager import StatusManager
+from views.ToolBar import Toolbar
 from controller.TimelineController import TimelineController
 
 # from ..FileHandlerController import readVideoFile
