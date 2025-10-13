@@ -19,7 +19,7 @@ from .PlaybackControlsWidget import PlaybackControlsWidget
 from .ToolbarWidget import ToolbarWidget
 from .SourcesTabWidget import SourcesTabWidget
 
-from .QtEditorialTimelineWidget import TimelineWidget, TrackData, ClipData
+from .widgets.QtEditorialTimelineWidget import TimelineWidget, TrackData, ClipData
 
 # from ..FileHandlerController import readVideoFile
 
@@ -148,7 +148,36 @@ class VideoEditor(QMainWindow):
         previewLayout.addWidget(self.toolbar)
         
         # Timeline area
-        self.timeline = TimelineWidget()
+        self.timeline = TimelineWidget("dark")
+
+        """
+        Démo track timeline
+        """
+        trackv2 = TrackData("Video 2")
+        trackv1 = TrackData("Video 1")
+
+        tracka1 = TrackData("Audio 1")
+        tracka2 = TrackData("Audio 2")
+
+        trackv1.add_clip(ClipData("Clip_A", 10, 50))
+        trackv1.add_clip(ClipData("Clip_B", 70, 40))
+
+        tracka2.add_clip(ClipData("Sound_A", 20, 60))
+        tracka2.add_clip(ClipData("Music_08", 90, 30))
+
+        trackv2.add_clip(ClipData("Mov_A", 0, 60))
+        trackv2.add_clip(ClipData("Avi_B", 61, 90))
+
+        tracka1.add_clip(ClipData("Music_16", 0, 30))
+        tracka1.add_clip(ClipData("Sound_B", 120, 30))
+
+        self.timeline.addTrack(trackv2)
+        self.timeline.addTrack(trackv1)
+        self.timeline.addTrack(tracka1)
+        self.timeline.addTrack(tracka2)
+        """
+        FIN Démo track timeline
+        """
         
         # Add timelines to the list
         self.timelines.append(self.timeline)
