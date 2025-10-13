@@ -1,5 +1,9 @@
 from moviepy import VideoClip, TextClip, CompositeVideoClip
 from moviepy.video.fx.MultiplySpeed import MultiplySpeed
+from moviepy.video.fx.BlackAndWhite import BlackAndWhite
+from moviepy.video.fx.LumContrast import LumContrast
+from moviepy.video.fx.Painting import Painting
+from moviepy.video.fx.Rotate import Rotate
 from controller.utils.VarConstraintChecker import constraintPositiveNumber, constraintNotEmptyText, \
 	constraintPourcentageNumber
 
@@ -56,7 +60,7 @@ def addingText(video: VideoClip, frames: int, framerate: int, text: str, positio
 	return CompositeVideoClip([video, txtClip])
 
 
-def changeVideoSpeed(video: VideoClip, newspeed: float) -> VideoClip:
+def videoSpeedEffect(video: VideoClip, newspeed: float) -> VideoClip:
 	"""Change video speed & returns it
 
 		Args:
@@ -67,3 +71,52 @@ def changeVideoSpeed(video: VideoClip, newspeed: float) -> VideoClip:
 	    """
 	constraintPourcentageNumber(newspeed)
 	return VideoClip(MultiplySpeed(newspeed).apply(video))
+
+def videoBlackWhiteEffect(video: VideoClip) -> VideoClip:
+	"""Apply the black & white effect on a video clip
+
+	Args:
+		video (VideoClip): The clip to apply on the effect
+
+	Returns:
+		VideoClip: The video clip with the applied effect
+	"""
+	return VideoClip(BlackAndWhite().apply(video))
+
+def videoContrastEffect(video: VideoClip, lum: float, contrast: float) -> VideoClip:
+	"""Apply the contrast effect with given parameters to the video clip
+
+	Args:
+		video (VideoClip): The clip to apply on the effect
+		lum (float): Luminosity of the clip
+		contrast (float): Contrast of the clip
+
+	Returns:
+		VideoClip: The video clip with the applied effect
+	"""
+	return VideoClip(LumContrast(lum, contrast).apply(video))
+
+def videoSaturationEffect(video: VideoClip, saturation: float) -> VideoClip:
+	"""Apply the saturation effect with given parameters to the video clip
+
+	Args:
+		video (VideoClip): The clip to apply on the effect
+		saturation (float): Saturation of the clip		
+
+	Returns:
+		VideoClip: The video clip with the applied effect
+	"""
+	return VideoClip(Painting(saturation).apply(video))
+
+def videoRotationEffect(video: VideoClip, rotation: float) -> VideoClip:
+	"""Apply the saturation effect with given parameters to the video clip
+
+	Args:
+		video (VideoClip): The clip to apply on the effect
+		rotation (float): Rotation of the clip (in degrees)		
+
+	Returns:
+		VideoClip: The video clip with the applied effect
+	"""
+ 	
+	return VideoClip(Rotate(rotation).apply(video))

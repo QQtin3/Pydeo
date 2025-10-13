@@ -1,3 +1,4 @@
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 import sys
 from views.VideoEditor import VideoEditor
@@ -23,5 +24,7 @@ if __name__ == "__main__":
     exit_action = file_menu.addAction("Quitter")
     exit_action.triggered.connect(app.quit)
     
+    # Set app icon
+    editor.setWindowIcon(QIcon("appicon.ico"))
     editor.show()
     sys.exit(app.exec())
