@@ -11,13 +11,15 @@ from controller.VideoPreviewController import VideoPreviewController
 from model.TimelineClip import TimelineClip
 from .ClipDialog import ClipDialog
 from .EffectsTab import EffectsTab
-from .TimelineWidget import TimelineWidget
-from .PlayHead import PlayHead
+#from .TimelineWidget import TimelineWidget
+# from .PlayHead import PlayHead
 from .VideoPreviewWidget import VideoPreviewWidget
 from .StatusManager import StatusManager
 from .PlaybackControlsWidget import PlaybackControlsWidget
 from .ToolbarWidget import ToolbarWidget
 from .SourcesTabWidget import SourcesTabWidget
+
+from .QtEditorialTimelineWidget import TimelineWidget, TrackData, ClipData
 
 # from ..FileHandlerController import readVideoFile
 
@@ -44,8 +46,6 @@ class VideoEditor(QMainWindow):
     sourcesTab: SourcesTabWidget
     currentTool: str
     timeline: TimelineWidget
-    secondTimeline: TimelineWidget
-    playHead: PlayHead
     statusManager: StatusManager
     playTimer: QTimer
     isPlaying: bool
@@ -149,14 +149,9 @@ class VideoEditor(QMainWindow):
         
         # Timeline area
         self.timeline = TimelineWidget()
-        self.secondTimeline = TimelineWidget()
-        
-        # Global playhead that extends over all timelines
-        self.playHead = PlayHead()
         
         # Add timelines to the list
         self.timelines.append(self.timeline)
-        self.timelines.append(self.secondTimeline)
         
         # Status area
         self.statusManager = StatusManager()
@@ -172,11 +167,6 @@ class VideoEditor(QMainWindow):
         
         # Add timelines first
         timelineLayout.addWidget(self.timeline)
-        timelineLayout.addWidget(self.secondTimeline)
-        
-        # Configure global playhead to extend over all timelines
-        self.playHead.setParent(timelineContainer)
-        self.playHead.setTimelineWidgets([self.timeline, self.secondTimeline])
         
         mainLayout.addWidget(timelineContainer)
         mainLayout.addWidget(self.statusManager.status_label)
