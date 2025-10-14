@@ -6,6 +6,7 @@ from model.Timeline import Timeline
 from model.TimelineClip import TimelineClip
 from views.VideoPreviewWidget import VideoPreviewWidget
 
+from .FileHandlerController import readVideoFile
 
 class SubClip:
     """Sous-classe représentant un sous-clip, c-à-d un ensemble de clips de timeline qui se chevauchent"""
