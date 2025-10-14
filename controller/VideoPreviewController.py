@@ -27,7 +27,6 @@ class SubClip:
     def getClipAndIndex(self, i) -> tuple[TimelineClip, int]:
         return self.clips[i], self.clipIndexes[i]
 
-
 class VideoPreviewController(QObject):
     """Controller that manages playback and backend interaction."""
 

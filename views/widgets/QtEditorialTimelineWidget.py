@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QPainter, QPen, QColor, QPolygonF, QFont
 from PySide6.QtCore import Qt, QRectF, QTimer, QPointF
 
+from controller.TimelineController import TimelineController
+from controller.VideoController import frames_to_timecode
 # --- Default Constants (can be overridden by theme) ---
 DEFAULT_CONSTANTS = {
     "LEFT_MARGIN": 150,
@@ -87,37 +89,6 @@ def get_theme(config=None):
     full_theme.update(theme)
     return full_theme
 
-
-# --- Helper Function ---
-def frames_to_timecode(frames, fps=24):
-    frames = int(round(frames))
-    seconds = frames // fps
-    frames_rem = frames % fps
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    seconds_rem = seconds % 60
-    return f"{hours:02}:{minutes:02}:{seconds_rem:02}:{frames_rem:02}"
-
-
-# --- Data Classes ---
-class TrackData:
-    def __init__(self, name, height=None):
-        self.name = name
-        self.height = (
-            height 
-            if height is not None 
-            else DEFAULT_CONSTANTS["DEFAULT_TRACK_HEIGHT"]
-        )
-        self.clips = []  # list of ClipData
-
-    def add_clip(self, clip):
-        self.clips.append(clip)
-
-class ClipData:
-    def __init__(self, title, start_frame, duration_frames):
-        self.title = title
-        self.start_frame = start_frame
-        self.duration_frames = duration_frames
 
 
 # --- Graphics Items ---
@@ -550,6 +521,9 @@ class ClipItem(QGraphicsItem):
 class TimelineView(QGraphicsView):
     def __init__(self, theme, parent=None):
         super().__init__(parent)
+        
+        self.controller = TimelineController(self)
+        
         self.theme = theme
 
         # Use theme constants
@@ -564,7 +538,7 @@ class TimelineView(QGraphicsView):
         self.playhead_frame = 0
         self.end_frame = 0
         self.bottom_frame_offset = self.BOTTOM_MARGIN
-        self.tracks = []  # list of TrackData
+        
         self.scene_obj = QGraphicsScene()
         self.setScene(self.scene_obj)
         self.setRenderHint(QPainter.Antialiasing)
@@ -592,12 +566,12 @@ class TimelineView(QGraphicsView):
         self.updateLayout()
 
     def addTrack(self, track):
-        self.tracks.append(track)
+        self.controller.timelines.append(track)
         self.updateLayout()
 
     def minimum_end_frame(self):
         max_end = 0
-        for track in self.tracks:
+        for track in self.controller.timelines:
             for clip in track.clips:
                 end = clip.start_frame + clip.duration_frames
                 if end > max_end:
@@ -607,7 +581,7 @@ class TimelineView(QGraphicsView):
     def updateLayout(self):
         scene_width = 2000
         y = self.TOP_MARGIN
-        for track in self.tracks:
+        for track in self.controller.timelines:
             y += track.height * self.v_zoom + self.TRACK_SPACING
         scene_height = y + self.bottom_frame_offset
         self.scene_obj.setSceneRect(0, 0, scene_width, scene_height)
@@ -643,7 +617,7 @@ class TimelineView(QGraphicsView):
             self.scene_obj.removeItem(item)
         self.clipItems = []
         current_y = self.TOP_MARGIN
-        for track in self.tracks:
+        for track in self.controller.timelines:
             header = TrackHeaderItem(track, theme=self.theme)
             header.setPos(0, current_y)
             self.scene_obj.addItem(header)
