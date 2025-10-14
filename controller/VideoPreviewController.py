@@ -2,10 +2,10 @@ from PySide6.QtCore import QObject, QTimer, Signal
 from moviepy import AudioClip, CompositeAudioClip, VideoClip, CompositeVideoClip
 
 from controller.VideoController import cutVideo
-from model.TimelineClip import TimelineClip
 from model.Timeline import Timeline
+from model.TimelineClip import TimelineClip
 from views.VideoPreviewWidget import VideoPreviewWidget
-from .FileHandlerController import readVideoFile
+
 
 class SubClip:
     """Sous-classe représentant un sous-clip, c-à-d un ensemble de clips de timeline qui se chevauchent"""
@@ -25,7 +25,7 @@ class SubClip:
         return len(self.clips)
     
     def getClipAndIndex(self, i) -> tuple[TimelineClip, int]:
-        return (self.clips[i], self.clipIndexes[i])
+        return self.clips[i], self.clipIndexes[i]
 
 
 class VideoPreviewController(QObject):
