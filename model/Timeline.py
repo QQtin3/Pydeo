@@ -21,3 +21,18 @@ class Timeline:
             self.clips.append(TimelineVideoClip(nom,start, path))
         else:
             self.clips.append(TimelineAudioClip(nom,start, path))
+
+    def delClip(self, path: str) -> None:
+        """Supprime un clip de la timeline selon son chemin de fichier."""
+        if not self.clips:
+            return
+
+        for clip in self.clips:
+            if clip.path == path:
+                self.clips.remove(clip)
+                print(f"Clip supprimé : {clip.name}")
+                break
+        else:
+            print(f"Aucun clip trouvé pour le chemin : {path}")
+
+        

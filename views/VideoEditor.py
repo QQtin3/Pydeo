@@ -272,6 +272,28 @@ class VideoEditor(QMainWindow):
             self.timeline.addClip(self.clips[-1])
 
             self.statusManager.update_status(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
+
+    def delTrack(self, trackName: str) -> None:
+        """Supprime une piste (track) de la timeline selon son nom."""
+        # Vérifier que la timeline existe
+        if not hasattr(self, "timeline") or self.timeline is None:
+            self.statusManager.update_status("Erreur: Aucune timeline chargée.")
+            return
+
+        # Tenter de trouver la piste
+        track_to_remove = None
+        for track in self.timeline.tracks:
+            if track.name == trackName:
+                track_to_remove = track
+                break
+
+        if track_to_remove:
+            self.timeline.tracks.remove(track_to_remove)
+            self.statusManager.update_status(f"Piste supprimée : {trackName}")
+            self.timeline.update()  # Rafraîchit l'affichage de la timeline
+        else:
+            self.statusManager.update_status(f"Erreur: Aucune piste nommée '{trackName}' trouvée.")
+
     
     def togglePlay(self) -> None:
         if self.sourceVideo is None or not self.sourceVideo:
