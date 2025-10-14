@@ -2,6 +2,7 @@ from moviepy import CompositeVideoClip, VideoClip, VideoFileClip, AudioClip, Aud
 from .utils.Exceptions import UnhandledFileFormatException
 import os
 
+
 def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None, int]:
     """Open a video file and return VideoClip and AudioClip objects (if audio is available in the video file)
 
@@ -43,7 +44,7 @@ def readAudioFile(path: str) -> tuple[AudioClip, int]:
         raise FileNotFoundError("Given path is not a file")
     
     if os.path.splitext(path)[1] not in [".mp3", ".wav", ".aac", ".ogg", ".flac", ".opus"]:
-        raise UnhandledFileFormatException("Wrong video file format. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus")
+        raise UnhandledFileFormatException("Wrong audio file format. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus")
     
     audio = AudioFileClip(path)
     

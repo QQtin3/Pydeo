@@ -15,23 +15,29 @@ class TimelineClip:
         self.end = end
         self.filePath = filePath
         
+    def getLeTemps(self) -> float:
+        return self.end - self.start
+        
 class TimelineVideoClip(TimelineClip):
     videoClip: VideoClip
     audioClip: AudioClip | None
     fps: int
     effects: list[VideoEffect]
     
-    def __init__(self, name: str, start: float, end: float, filePath: str):
-        super().__init__(name, start, end, filePath)
+    def __init__(self, name: str, start: float, filePath: str):
+        super().__init__(name, start, 0, filePath)
         
         self.videoClip, self.audioClip, self.fps = readVideoFile(self.filePath)
+        self.end = self.videoClip.duration  # Change la fin mise par défaut à 0
+        
         
 class TimelineAudioClip(TimelineClip):
     audioClip: AudioClip
     frequency: int
     effects: list[AudioEffect]
     
-    def __init__(self, name: str, start: float, end: float, filePath: str):
-        super().__init__(name, start, end, filePath)
+    def __init__(self, name: str, start: float, filePath: str):
+        super().__init__(name, start, 0, filePath)
         
         self.audioClip, self.frequency = readAudioFile(self.filePath)
+        self.end = self.audioClip.duration  # Change la fin mise par défaut à 0
