@@ -13,7 +13,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QPainter, QPen, QColor, QPolygonF, QFont
 from PySide6.QtCore import Qt, QRectF, QTimer, QPointF
+from 
 
+from controller.VideoController import frames_to_timecode
 # --- Default Constants (can be overridden by theme) ---
 DEFAULT_CONSTANTS = {
     "LEFT_MARGIN": 150,
@@ -87,37 +89,6 @@ def get_theme(config=None):
     full_theme.update(theme)
     return full_theme
 
-
-# --- Helper Function ---
-def frames_to_timecode(frames, fps=24):
-    frames = int(round(frames))
-    seconds = frames // fps
-    frames_rem = frames % fps
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    seconds_rem = seconds % 60
-    return f"{hours:02}:{minutes:02}:{seconds_rem:02}:{frames_rem:02}"
-
-
-# --- Data Classes ---
-class TrackData:
-    def __init__(self, name, height=None):
-        self.name = name
-        self.height = (
-            height 
-            if height is not None 
-            else DEFAULT_CONSTANTS["DEFAULT_TRACK_HEIGHT"]
-        )
-        self.clips = []  # list of ClipData
-
-    def add_clip(self, clip):
-        self.clips.append(clip)
-
-class ClipData:
-    def __init__(self, title, start_frame, duration_frames):
-        self.title = title
-        self.start_frame = start_frame
-        self.duration_frames = duration_frames
 
 
 # --- Graphics Items ---

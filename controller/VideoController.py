@@ -9,6 +9,17 @@ from controller.utils.VarConstraintChecker import constraintPositiveNumber, cons
 
 from .utils.VarConstraintChecker import constraintPositiveNumber, constraintNotEmptyText
 
+# --- Helper Function ---
+def frames_to_timecode(frames, fps=24):
+    frames = int(round(frames))
+    seconds = frames // fps
+    frames_rem = frames % fps
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds_rem = seconds % 60
+    return f"{hours:02}:{minutes:02}:{seconds_rem:02}:{frames_rem:02}"
+
+
 def cutVideo(video: VideoClip, cuttingFrame: int, framerate: int) -> tuple[VideoClip, VideoClip]:
 	"""Cut a part of a VideoClip & returns it
 
