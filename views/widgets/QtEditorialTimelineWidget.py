@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QPainter, QPen, QColor, QPolygonF, QFont
 from PySide6.QtCore import Qt, QRectF, QTimer, QPointF
-from 
 
 from controller.VideoController import frames_to_timecode
 # --- Default Constants (can be overridden by theme) ---
