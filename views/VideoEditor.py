@@ -142,8 +142,6 @@ class VideoEditor(QMainWindow):
         self.toolbar = ToolbarWidget()
         self.toolbar.undoRequested.connect(self.undo)
         self.toolbar.redoRequested.connect(self.redo)
-        self.toolbar.zoomInRequested.connect(self.zoomIn)
-        self.toolbar.zoomOutRequested.connect(self.zoomOut)
         self.toolbar.modeChanged.connect(self.setToolMode)
         previewLayout.addWidget(self.toolbar)
         
@@ -222,15 +220,6 @@ class VideoEditor(QMainWindow):
         self.currentTool = mode
         self.statusManager.update_status(f"État: Mode d'édition: {mode}")
 
-
-    def zoomIn(self) -> None:
-        """Handle zoom in action"""
-        self.statusManager.update_status("État: Zoom avant")
-        # In a real implementation, this would zoom in the timeline
-    
-    def zoomOut(self) -> None:
-        """Handle zoom out action"""
-        self.statusManager.update_status("État: Zoom arrière")
     
     def importVideo(self) -> None:
         """Open a file dialog, load a video, and reflect it in the UI."""
