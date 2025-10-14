@@ -11,8 +11,6 @@ class ToolbarWidget(QWidget):
 
     undoRequested = Signal()
     redoRequested = Signal()
-    zoomInRequested = Signal()
-    zoomOutRequested = Signal()
     modeChanged = Signal(str)  # 'move' | 'cut' | 'split' | 'select'
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -73,24 +71,7 @@ class ToolbarWidget(QWidget):
         self.selectBtn.setFixedSize(24, 24)
         self.selectBtn.clicked.connect(lambda: self._setMode('select'))
         layout.addWidget(self.selectBtn)
-
         layout.addSpacing(15)
-
-        # Zoom
-        self.zoomInBtn = QToolButton()
-        self.zoomInBtn.setText("+")
-        self.zoomInBtn.setToolTip("Zoom avant")
-        self.zoomInBtn.setFixedSize(24, 24)
-        self.zoomInBtn.clicked.connect(self.zoomInRequested.emit)
-        layout.addWidget(self.zoomInBtn)
-
-        self.zoomOutBtn = QToolButton()
-        self.zoomOutBtn.setText("-")
-        self.zoomOutBtn.setToolTip("Zoom arrière")
-        self.zoomOutBtn.setFixedSize(24, 24)
-        self.zoomOutBtn.clicked.connect(self.zoomOutRequested.emit)
-        layout.addWidget(self.zoomOutBtn)
-
         layout.addStretch()
 
         # Current mode string
@@ -98,7 +79,7 @@ class ToolbarWidget(QWidget):
 
     # ----- Public API -----------------------------------------------------
     def setMode(self, mode: str) -> None:
-        """Set current mode programmatically and update UI state."""
+        """Set the current mode programmatically and update UI state."""
         self._updateChecks(mode)
         self.currentMode = mode
 
