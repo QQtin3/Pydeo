@@ -155,10 +155,15 @@ class VideoEditor(QMainWindow):
         # Track controls
         trackBtnLayout = QHBoxLayout()
 
-        self.importVideoBtn = QPushButton("Importer une source")
-        self.importVideoBtn.clicked.connect(self.importVideo)
-        self.importVideoBtn.setEnabled(True)
-        trackBtnLayout.addWidget(self.importVideoBtn)
+        # Toolbar under the preview (modularized)
+        self.toolbar = ToolbarWidget()
+        self.toolbar.undoRequested.connect(self.undo)
+        self.toolbar.redoRequested.connect(self.redo)
+        self.toolbar.modeChanged.connect(self.setToolMode)
+        previewLayout.addWidget(self.toolbar)
+        
+        # Timeline area
+        self.timeline = TimelineWidget("dark")
 
         """
         self.addTrackBtn = QPushButton("Ajouter une piste")
@@ -236,16 +241,9 @@ class VideoEditor(QMainWindow):
         self.currentTool = mode
         self.statusManager.update_status(f"État: Mode d'édition: {mode}")
 
-    def zoomIn(self) -> None:
-        """Handle zoom in action"""
-        self.statusManager.update_status("État: Zoom avant")
-        # In a real implementation, this would zoom in the timeline
     
-    def zoomOut(self) -> None:
-        """Handle zoom out action"""
-        self.statusManager.update_status("État: Zoom arrière")
-    
-    def importVideo(self, filePath: str):
+    def importVideo(self) -> None:
+        """Open a file dialog, load a video, and reflect it in the UI."""
         filePath, _ = QFileDialog.getOpenFileName(
 			self, "Sélectionner une vidéo", "", "Fichiers vidéo (*.mp4 *.avi *.mov *.mkv)"
 		)
