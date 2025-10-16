@@ -20,6 +20,9 @@ from .PlaybackControlsWidget import PlaybackControlsWidget
 from .ToolbarWidget import ToolbarWidget
 from .SourcesTabWidget import SourcesTabWidget
 
+from controller.SourceController import SourceController
+from controller.TimelineController import TimelineController
+
 from .widgets.QtEditorialTimelineWidget import TimelineWidget
 
 # from ..FileHandlerController import readVideoFile
@@ -126,8 +129,13 @@ class VideoEditor(QMainWindow):
             }
         """)
 
+        # Timeline area
+        self.timeline = TimelineWidget("dark")
+
         # Tabs on the right side: Sources (custom widget) & Effects
-        self.sourcesTab = SourcesTabWidget()
+        self.timelineController = TimelineController(self.timeline)
+        self.sourceController = SourceController()
+        self.sourcesTab = SourcesTabWidget(self.timelineController, self.sourceController)
         self.sourcesTab.importRequested.connect(self.importVideo)
 
         effectsTab = EffectsTab()
@@ -146,8 +154,7 @@ class VideoEditor(QMainWindow):
         self.toolbar.modeChanged.connect(self.setToolMode)
         previewLayout.addWidget(self.toolbar)
         
-        # Timeline area
-        self.timeline = TimelineWidget("dark")
+
 
         """
         Démo track timeline
