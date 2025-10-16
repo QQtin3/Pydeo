@@ -128,7 +128,7 @@ class RulerItem(QGraphicsItem):
         scale = self.theme["BASE_PIXELS_PER_FRAME"] * h_zoom
         x = 0
         while x < rect.width():
-            frame = x / scale
+            frame = int(round(x / scale))
             if int(frame) % fps == 0:
                 painter.setPen(QPen(QColor(self.theme["ruler_tick_major"])))
                 painter.drawLine(x, rect.bottom(), x, rect.bottom() - 15)
