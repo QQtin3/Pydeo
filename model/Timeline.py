@@ -1,6 +1,6 @@
 from enum import Enum
 from model.TimelineClip import TimelineClip
-from views.widgets.QtEditorialTimelineWidget import DEFAULT_CONSTANTS
+from model.WidgetConfig import DEFAULT_CONSTANTS
 
 from model.TimelineClip import TimelineClip, TimelineVideoClip, TimelineAudioClip
 from controller.utils.fileExtensions import isFileVideo
