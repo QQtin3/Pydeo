@@ -17,14 +17,7 @@ from PySide6.QtCore import Qt, QRectF, QTimer, QPointF
 from controller.TimelineController import TimelineController
 from controller.VideoController import frames_to_timecode
 # --- Default Constants (can be overridden by theme) ---
-DEFAULT_CONSTANTS = {
-    "LEFT_MARGIN": 150,
-    "TOP_MARGIN": 30,
-    "BOTTOM_MARGIN": 20,
-    "TRACK_SPACING": 2,
-    "BASE_PIXELS_PER_FRAME": 10,
-    "DEFAULT_TRACK_HEIGHT": 60,
-}
+from model.WidgetConfig import DEFAULT_CONSTANTS
 
 # --- Default Themes ---
 THEMES = {
