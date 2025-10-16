@@ -1,12 +1,14 @@
 from moviepy import CompositeVideoClip, VideoClip, VideoFileClip, AudioClip, AudioFileClip, ImageClip
+
+from model.Source import Source
 from .utils.Exceptions import UnhandledFileFormatException
 import os
 
-def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None, int]:
+def readVideoFile(source: Source) -> tuple[VideoClip, AudioClip | None, int]:
     """Open a video file and return VideoClip and AudioClip objects (if audio is available in the video file)
 
     Args:
-        path (str): the path of the file. Supported formats are .mp4, .avi, .mkv, .mov, .flv, .wmv and .webm.
+        source (Source): the source of the clip. This source must refer to a file with supported format (.mp4, .avi, .mkv, .mov, .flv, .wmv or .webm)
 
     Returns:
         tuple[VideoClip, AudioClip | None, int]: Clips and framerate extracted from the given file
@@ -15,22 +17,22 @@ def readVideoFile(path: str) -> tuple[VideoClip, AudioClip | None, int]:
         FileNotFoundError: The specified location is not an existing file
         UnhandledFileFormatException: The specified file extension is not supported
     """
-    if not os.path.isfile(path):
+    if not os.path.isfile(source.filepath):
         raise FileNotFoundError("Given path is not a file")
     
-    if os.path.splitext(path)[1] not in [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".webm"]:
+    if os.path.splitext(source.filepath)[1] not in [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".webm"]:
         raise UnhandledFileFormatException("Wrong video file format. Supported formats are .mp4, .avi, .mkv, .mov, .flv, .wmv and .webm")
     
-    clip = VideoFileClip(path)
+    clip = VideoFileClip(source.filepath)
     audio = clip.audio
     
     return clip, audio, clip.fps
 
-def readAudioFile(path: str) -> tuple[AudioClip, int]:
+def readAudioFile(source: Source) -> tuple[AudioClip, int]:
     """Open an audio file and return AudioClip object
 
     Args:
-        path (str): the path of the file. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus.
+        source (source): the source of the clip. This source must refer to a file with supported format (.mp3, .wav, .aac, .ogg, .flac or .opus)
 
     Returns:
         tuple[AudioClip, int]: Clips extracted from the given file and its frequency
@@ -39,21 +41,21 @@ def readAudioFile(path: str) -> tuple[AudioClip, int]:
         FileNotFoundError: The specified location is not an existing file
         UnhandledFileFormatException: The specified file extension is not supported
     """
-    if not os.path.isfile(path):
+    if not os.path.isfile(source.filepath):
         raise FileNotFoundError("Given path is not a file")
     
-    if os.path.splitext(path)[1] not in [".mp3", ".wav", ".aac", ".ogg", ".flac", ".opus"]:
+    if os.path.splitext(source.filepath)[1] not in [".mp3", ".wav", ".aac", ".ogg", ".flac", ".opus"]:
         raise UnhandledFileFormatException("Wrong video file format. Supported formats are .mp3, .wav, .aac, .ogg, .flac and .opus")
     
-    audio = AudioFileClip(path)
+    audio = AudioFileClip(source.filepath)
     
     return audio, audio.fps
 
-def readImageFile(path: str) -> ImageClip:
+def readImageFile(source: Source) -> ImageClip:
     """Open an image file and return ImageClip object
 
     Args:
-        path (str): the path of the file. Supported formats are .jpg, .png, .gif, .bmp and .tiff
+        path (Source): the source of the clip. This source must refer to a file with supported format (.jpg, .png, .gif, .bmp or .tiff)
 
     Returns:
         tuple[VideoClip, AudioClip | None]: Clips extracted from the given file
@@ -62,13 +64,13 @@ def readImageFile(path: str) -> ImageClip:
         FileNotFoundError: The specified location is not an existing file
         UnhandledFileFormatException: The specified file extension is not supported
     """
-    if not os.path.isfile(path):
+    if not os.path.isfile(source.filepath):
         raise FileNotFoundError("Given path is not a file")
     
-    if os.path.splitext(path)[1] not in [".jpg", ".png", ".gif", ".bmp", ".tiff"]:
+    if os.path.splitext(source.filepath)[1] not in [".jpg", ".png", ".gif", ".bmp", ".tiff"]:
         raise UnhandledFileFormatException("Wrong video file format. Supported formats are .jpg, .png, .gif, .bmp and .tiff")
     
-    image = ImageClip(path)
+    image = ImageClip(source.filepath)
     return image
 
 def exportVideo(clips: CompositeVideoClip, path: str) -> None:
