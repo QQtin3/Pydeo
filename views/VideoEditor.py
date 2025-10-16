@@ -311,17 +311,6 @@ class VideoEditor(QMainWindow):
         self.statusManager.update_status("État: Action refaite")
         # Implementation would redo previously undone actions
     
-    def addTimeline(self) -> TimelineWidget:
-        """Add a new timeline"""
-        newTimeline = TimelineWidget()
-        self.timelines.append(newTimeline)
-        
-        # Update duration if video is loaded
-        if self.sourceVideo:
-            newTimeline.setDuration(self.sourceVideo.duration)
-        
-        return newTimeline
-
     def exportVideo(self) -> None:
         if not self.clips:
             self.statusManager.update_status("Erreur: Aucun clip à exporter")
@@ -348,13 +337,6 @@ class VideoEditor(QMainWindow):
         # Update slider without causing feedback
         self.playbackControls.setPositionMs(int(time * 1000))
         self.timeline.setCurrentTime(time)
-        self.updateTimeDisplay()
-	
-    def onVideoDurationChanged(self, duration):
-        """Called when a new video is loaded"""
-        self.videoPreview.videoDuration = duration
-        self.playbackControls.setDurationMs(int(duration * 1000))
-        self.timeline.setDuration(duration)
         self.updateTimeDisplay()
 	
     def onPlaybackStateChanged(self, isPlaying):
