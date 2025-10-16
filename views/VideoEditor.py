@@ -162,8 +162,8 @@ class VideoEditor(QMainWindow):
         trackv2 = Timeline("Video 2")
         trackv1 = Timeline("Video 1")
 
-        tracka1 = Timeline("Audio 1", type=TimelineType.AUDIO)
-        tracka2 = Timeline("Audio 2", type=TimelineType.AUDIO)
+        tracka1 = Timeline("Audio 1", typee=TimelineType.AUDIO)
+        tracka2 = Timeline("Audio 2", typee=TimelineType.AUDIO)
 
         self.timeline.addTrack(trackv2)
         self.timeline.addTrack(trackv1)
@@ -234,7 +234,7 @@ class VideoEditor(QMainWindow):
                 duration = float(self.sourceVideo.duration)
             except Exception:
                 duration = 0.0
-            self.sourcesTab.addSourceItem(os.path.basename(self.sourceVideoPath or ""), duration)
+            self.sourcesTab.addSourceItem(os.path.basename(self.sourceVideoPath or ""), duration, self.sourceVideoPath)
 
             # Inform status bar; the rest of the UI (slider, play button)
             # is updated via VideoPreviewController signals we connect below.
@@ -354,7 +354,7 @@ class VideoEditor(QMainWindow):
         """Called when a new video is loaded"""
         self.videoPreview.videoDuration = duration
         self.playbackControls.setDurationMs(int(duration * 1000))
-        self.timeline.setDuration(duration)
+        # self.timeline.setDuration(duration)
         self.updateTimeDisplay()
 	
     def onPlaybackStateChanged(self, isPlaying):

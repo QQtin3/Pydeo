@@ -30,7 +30,7 @@ class TimelineController:
         clip = None
         start_frame = 0
         
-        if timeline.type == TimelineType.VIDEO:
+        if timeline.typee == TimelineType.VIDEO:
             clip = TimelineVideoClip(name, source, start_frame)
         else: #timeline.type == AUDIO
             clip = TimelineAudioClip(name, source, start_frame)
