@@ -69,9 +69,12 @@ class SourcesTabWidget(QWidget):
         durationLabel.setStyleSheet("min-width: 50px; text-align: right;")
         rowLayout.addWidget(durationLabel)
 
+    
+        chooseTrack = ChooseTrackDialog(self.timeline_controller, laSource)
+        chooseTrack.show()
         row.clicked.connect(lambda : self.addClipToTrack(
                 laSource,
-                ChooseTrackDialog(self.timeline_controller, laSource)
+                chooseTrack.getLaTimeline()
             )
         )
 
@@ -84,5 +87,5 @@ class SourcesTabWidget(QWidget):
         """
         Lorsque la source est cliquée
         """
-        clip = self.timeline_controller.addClip(Timeline, source.name, source)
-        timeline.add_clip(clip)
+        clip = self.timeline_controller.addClip(target_timeline, source.name, source)
+        target_timeline.add_clip(clip)

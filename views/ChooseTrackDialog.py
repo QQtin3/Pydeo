@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from model.Source import Source
 from controller.TimelineController import TimelineController
 from controller.utils.fileExtensions import isFileAudio, isFileVideo
-from model.Timeline import TimelineType
+from model.Timeline import Timeline, TimelineType
 
 
 class ChooseTrackDialog(QDialog):
