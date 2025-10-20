@@ -58,9 +58,9 @@ class ChooseTrackDialog(QDialog):
     def populateTimelines(self):
         """Remplit la liste avec les timelines compatibles."""
         for timeline in self.controller.timelines:
-            if self.is_audio and timeline.type == TimelineType.AUDIO:
+            if self.is_audio and timeline.typee == TimelineType.AUDIO:
                 self.listWidget.addItem(timeline.name)
-            elif self.is_video and timeline.type == TimelineType.VIDEO:
+            elif self.is_video and timeline.typee == TimelineType.VIDEO:
                 self.listWidget.addItem(timeline.name)
 
     def accept(self):
