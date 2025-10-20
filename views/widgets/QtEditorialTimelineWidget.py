@@ -681,8 +681,9 @@ class ClipItem(QGraphicsItem):
                 candidate = original_candidate
                 break
 
-        # Update our clip's start_frame and reposition it.
-        self.clip_data.start_frame = max(0, candidate)
+        if self.resize_controller:
+            self.resize_controller.move_clip(self.clip_data, max(0, candidate))
+        
         new_x_pos = (
             self.theme["LEFT_MARGIN"]
             + self.clip_data.start_frame
@@ -941,3 +942,9 @@ class TimelineWidget(QWidget):
 
     def addTrack(self, track):
         self.timeline_view.addTrack(track)
+        if hasattr(self, '_resize_controller') and self._resize_controller:
+            self.timeline_view.set_resize_controller(self._resize_controller)
+    
+    def set_resize_controller(self, controller):
+        self._resize_controller = controller
+        self.timeline_view.set_resize_controller(controller)
