@@ -81,11 +81,11 @@ class SourcesTabWidget(QWidget):
     def selectTimelineAndAddClipToTrack(self, laSource: Source):
         chooseTrack = ChooseTrackDialog(self.timeline_controller, laSource)
         chooseTrack.exec()
-        # WAIT HERE UTIL THE QDIALOG IS FINISEHD
         self.addClipToTrack(
                 laSource,
                 chooseTrack.getLaTimeline()
             )
+        self.timeline_controller.view.updateLayout()
 
     def addClipToTrack(self, source: Source, target_timeline: Timeline):
         """
