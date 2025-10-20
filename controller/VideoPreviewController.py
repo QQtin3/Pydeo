@@ -5,6 +5,10 @@ from controller.VideoController import cutVideo
 from model.Timeline import Timeline
 from model.TimelineClip import TimelineClip
 from views.VideoPreviewWidget import VideoPreviewWidget
+from model.Source import Source
+
+from controller.FileHandlerController import readVideoFile
+import os
 
 
 class SubClip:
@@ -56,17 +60,21 @@ class VideoPreviewController(QObject):
         self.timer = QTimer()
         self.timer.timeout.connect(self._update_frame)
 
-    # def loadVideo(self, path: str) -> bool:
-    #     try:
-    #         self.clip, self.audio, self.fps = readVideoFile(path)
-    #         self.duration = self.clip.duration
-    #         self.currentTime = 0
-    #         self.durationChanged.emit(self.duration)
-    #         self.seek(0)
-    #         return True
-    #     except Exception as e:
-    #         print(f"Error loading video: {e}")
-    #         return False
+    def loadVideo(self, path: str) -> bool:
+        try:
+            laSource = Source()
+            laSource.name = os.path.basename(path or "")
+            laSource.filepath = path
+            self.clip, self.audio, self.fps = readVideoFile(laSource)
+            self.duration = self.clip.duration
+            self.currentTime = 0
+            self.durationChanged.emit(self.duration)
+            self.seek(0)
+            return True
+        except Exception as e:
+            print(f"Error loading video: {e}")
+            return False
+    """
     def loadVideo(self, timelines: list[Timeline]) -> bool:
         try:
             #self.clip, self.audio = self.render(timelines)
@@ -78,7 +86,7 @@ class VideoPreviewController(QObject):
         except Exception as e:
             print(f"Error loading video: {e}")
             return False
-
+    """
     def play(self):
         if self.clip and not self.isPlaying:
             self.isPlaying = True

@@ -234,11 +234,14 @@ class VideoEditor(QMainWindow):
             self.sourceVideoPath = filePath
             self.sourceVideo = self.videoController.clip
 
+            print(self.sourceVideo.duration)
+
             # Add to the Sources tab list
             try:
                 duration = float(self.sourceVideo.duration)
             except Exception:
                 duration = 0.0
+                print("default duration")
             self.sourcesTab.addSourceItem(os.path.basename(self.sourceVideoPath or ""), duration, self.sourceVideoPath)
 
             # Inform status bar; the rest of the UI (slider, play button)
@@ -352,7 +355,7 @@ class VideoEditor(QMainWindow):
         self.currentPlayTime = time
         # Update slider without causing feedback
         self.playbackControls.setPositionMs(int(time * 1000))
-        self.timeline.setCurrentTime(time)
+        #self.timeline.setCurrentTime(time)
         self.updateTimeDisplay()
 	
     def onVideoDurationChanged(self, duration):
