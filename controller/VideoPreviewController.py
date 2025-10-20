@@ -91,8 +91,8 @@ class VideoPreviewController(QObject):
     #         return False
     def loadVideo(self, timelines: list[Timeline]) -> bool:
         try:
-            self.clip, self.audio = self.render(timelines)
-            self.duration = self.clip.duration
+            #self.clip, self.audio = self.render(timelines)
+            self.duration = 10# self.clip.duration
             self.currentTime = 0
             self.durationChanged.emit(self.duration)
             self.seek(0)
