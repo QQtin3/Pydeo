@@ -23,7 +23,7 @@ from .SourcesTabWidget import SourcesTabWidget
 from controller.SourceController import SourceController
 from controller.TimelineController import TimelineController
 
-from .widgets.QtEditorialTimelineWidget import TimelineWidget
+from .widgets.QtEditorialTimelineWidget import THEMES, TimelineView, TimelineWidget
 
 # from ..FileHandlerController import readVideoFile
 
@@ -133,7 +133,7 @@ class VideoEditor(QMainWindow):
         self.timeline = TimelineWidget("dark")
 
         # Tabs on the right side: Sources (custom widget) & Effects
-        self.timelineController = TimelineController(self.timeline)
+        self.timelineController = TimelineController(self.timeline.timeline_view)
         self.sourceController = SourceController()
         self.sourcesTab = SourcesTabWidget(self.timelineController, self.sourceController)
         self.sourcesTab.importRequested.connect(self.importVideo)

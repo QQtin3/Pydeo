@@ -20,6 +20,8 @@ class SourcesTabWidget(QWidget):
     """
 
     importRequested = Signal()
+    
+    timeline_controller: TimelineController
 
     def __init__(self, timeline_controller, source_controller, parent: QWidget | None = None) -> None:
         super().__init__(parent)
