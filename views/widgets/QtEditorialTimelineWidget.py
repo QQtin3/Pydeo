@@ -435,6 +435,7 @@ class TrackLaneItem(QGraphicsItem):
 
 class ClipItem(QGraphicsItem):
     SNAP_TOLERANCE = 1
+    RESIZE_HANDLE_SIZE = 8
 
     def __init__(self, clip_data, track_data, theme=None, parent=None):
         super().__init__(parent)
@@ -446,6 +447,11 @@ class ClipItem(QGraphicsItem):
             QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable
         )
         self._fixed_y = 0
+        self._resize_handle = None  # left, right
+        self._drag_start_pos = None
+        self._drag_start_data = None
+        
+        self.resize_controller = None
 
     def boundingRect(self):
         return self.rect
@@ -455,6 +461,9 @@ class ClipItem(QGraphicsItem):
         self.setPos(x, y)
         self._fixed_y = y
         self.update()
+    
+    def set_resize_controller(self, controller):
+        self.resize_controller = controller
 
     def paint(self, painter, option, widget):
         fill = (
@@ -465,6 +474,11 @@ class ClipItem(QGraphicsItem):
         painter.fillRect(self.rect, fill)
         painter.setPen(QPen(QColor(self.theme["clip_border"])))
         painter.drawRect(self.rect)
+        
+        # elements cliquables pour redimensionner a gauche et a droite
+        if self.isSelected():
+            self._draw_resize_handles(painter)
+        
         painter.setPen(QColor(self.theme["track_header_text"]))
         painter.setFont(QFont("Sans", 8))
         margin = 2
@@ -484,6 +498,32 @@ class ClipItem(QGraphicsItem):
             end_tc,
         )
         painter.drawText(self.rect, Qt.AlignCenter, self.clip_data.title)
+
+    def _draw_resize_handles(self, painter):
+        handle_size = self.RESIZE_HANDLE_SIZE
+        rect = self.rect
+        
+        # handle à gauche
+        left_handle = QRectF(0, 0, handle_size, rect.height())
+        painter.fillRect(left_handle, QColor("#4A90E2"))
+        
+        # handle à droite
+        right_handle = QRectF(rect.width() - handle_size, 0, handle_size, rect.height())
+        painter.fillRect(right_handle, QColor("#4A90E2"))
+
+    def _get_resize_handle_at(self, pos):
+        handle_size = self.RESIZE_HANDLE_SIZE
+        rect = self.rect
+        
+        # handle à gauche
+        if QRectF(0, 0, handle_size, rect.height()).contains(pos):
+            return 'left'
+        
+        # handle à droite
+        if QRectF(rect.width() - handle_size, 0, handle_size, rect.height()).contains(pos):
+            return 'right'
+        
+        return None
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
