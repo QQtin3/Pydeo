@@ -84,6 +84,41 @@ def get_theme(config=None):
 
 
 
+
+# --- Data Classes ---
+class TrackData:
+    def __init__(self, name, height=None):
+        self.name = name
+        self.height = (
+            height 
+            if height is not None 
+            else DEFAULT_CONSTANTS["DEFAULT_TRACK_HEIGHT"]
+        )
+        self.clips = []  # list of ClipData
+
+    def add_clip(self, clip):
+        self.clips.append(clip)
+
+class ClipData:
+    def __init__(self, title, start_frame, duration_frames, max_duration_frames=None):
+        self.title = title
+        self.start_frame = start_frame
+        self.duration_frames = duration_frames
+        self.max_duration_frames = max_duration_frames or duration_frames  # Durée maximale autorisée
+    
+    def get_end_frame(self):
+        return self.start_frame + self.duration_frames
+    
+    def can_resize_to(self, new_duration_frames):
+        return 1 <= new_duration_frames <= self.max_duration_frames
+    
+    def can_move_to(self, new_start_frame, min_start=0):
+        return new_start_frame >= min_start
+    
+    def get_original_duration(self):
+        return self.max_duration_frames
+
+
 # --- Graphics Items ---
 # Each item now accepts a theme dict and uses its color settings.
 class TimeLabelItem(QGraphicsItem):
@@ -386,6 +421,7 @@ class TrackLaneItem(QGraphicsItem):
 
 class ClipItem(QGraphicsItem):
     SNAP_TOLERANCE = 1
+    RESIZE_HANDLE_SIZE = 8
 
     def __init__(self, clip_data, track_data, theme=None, parent=None):
         super().__init__(parent)
@@ -397,6 +433,11 @@ class ClipItem(QGraphicsItem):
             QGraphicsItem.ItemIsSelectable | QGraphicsItem.ItemIsMovable
         )
         self._fixed_y = 0
+        self._resize_handle = None  # left, right
+        self._drag_start_pos = None
+        self._drag_start_data = None
+        
+        self.resize_controller = None
 
     def boundingRect(self):
         return self.rect
@@ -406,6 +447,9 @@ class ClipItem(QGraphicsItem):
         self.setPos(x, y)
         self._fixed_y = y
         self.update()
+    
+    def set_resize_controller(self, controller):
+        self.resize_controller = controller
 
     def paint(self, painter, option, widget):
         fill = (
@@ -416,6 +460,11 @@ class ClipItem(QGraphicsItem):
         painter.fillRect(self.rect, fill)
         painter.setPen(QPen(QColor(self.theme["clip_border"])))
         painter.drawRect(self.rect)
+        
+        # elements cliquables pour redimensionner a gauche et a droite
+        if self.isSelected():
+            self._draw_resize_handles(painter)
+        
         painter.setPen(QColor(self.theme["track_header_text"]))
         painter.setFont(QFont("Sans", 8))
         margin = 2
@@ -436,6 +485,32 @@ class ClipItem(QGraphicsItem):
         )
         painter.drawText(self.rect, Qt.AlignCenter, self.clip_data.title)
 
+    def _draw_resize_handles(self, painter):
+        handle_size = self.RESIZE_HANDLE_SIZE
+        rect = self.rect
+        
+        # handle à gauche
+        left_handle = QRectF(0, 0, handle_size, rect.height())
+        painter.fillRect(left_handle, QColor("#4A90E2"))
+        
+        # handle à droite
+        right_handle = QRectF(rect.width() - handle_size, 0, handle_size, rect.height())
+        painter.fillRect(right_handle, QColor("#4A90E2"))
+
+    def _get_resize_handle_at(self, pos):
+        handle_size = self.RESIZE_HANDLE_SIZE
+        rect = self.rect
+        
+        # handle à gauche
+        if QRectF(0, 0, handle_size, rect.height()).contains(pos):
+            return 'left'
+        
+        # handle à droite
+        if QRectF(rect.width() - handle_size, 0, handle_size, rect.height()).contains(pos):
+            return 'right'
+        
+        return None
+
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
             new_pos = value
@@ -445,9 +520,101 @@ class ClipItem(QGraphicsItem):
 
     def mousePressEvent(self, event):
         self._fixed_y = self.pos().y()
+        self._drag_start_pos = event.pos()
+        self._drag_start_data = (self.clip_data.start_frame, self.clip_data.duration_frames)
+        
+        # Vérifier si on clique sur une poignée de redimensionnement
+        if self.isSelected():
+            self._resize_handle = self._get_resize_handle_at(event.pos())
+        
         super().mousePressEvent(event)
 
+    def mouseMoveEvent(self, event):
+        if self._resize_handle and self._drag_start_pos:
+            # Redimensionnement en cours
+            self._handle_resize(event)
+        else:
+            # Déplacement normal
+            super().mouseMoveEvent(event)
+
+    def _handle_resize(self, event):
+        if not self.resize_controller:
+            return
+        
+        view = self.scene().views()[0]
+        delta_x = event.pos().x() - self._drag_start_pos.x()
+        delta_frames = round(delta_x / (self.theme["BASE_PIXELS_PER_FRAME"] * view.h_zoom))
+        
+        original_start, original_duration = self._drag_start_data
+        
+        if self._resize_handle == 'left':
+            # Calculer la nouvelle position de début basée sur la position absolue de la souris
+            mouse_scene_pos = self.mapToScene(event.pos())
+            new_start_frame = round(
+                (mouse_scene_pos.x() - self.theme["LEFT_MARGIN"]) / 
+                (self.theme["BASE_PIXELS_PER_FRAME"] * view.h_zoom)
+            )
+            new_start = max(0, new_start_frame)
+            new_duration = original_duration - (new_start - original_start)
+            
+            # Vérifications de validité
+            if new_duration > 0:
+                # Vérifier la durée maximale si elle existe
+                if (self.clip_data.max_duration_frames and 
+                    new_duration > self.clip_data.max_duration_frames):
+                    return  # Ignorer si trop grand
+                
+                old_start = self.clip_data.start_frame
+                old_duration = self.clip_data.duration_frames
+                
+                self.clip_data.start_frame = new_start
+                self.clip_data.duration_frames = new_duration
+                
+                # Utiliser la même méthode que pour la droite
+                self._update_position()
+                
+                # Émettre les signaux pour notifier les changements
+                if self.resize_controller:
+                    self.resize_controller.clipMoved.emit(self.clip_data, old_start, new_start)
+                    self.resize_controller.clipResized.emit(self.clip_data, old_duration, new_duration)
+        
+        elif self._resize_handle == 'right':
+            new_duration = original_duration + delta_frames
+            
+            if self.resize_controller.resize_clip_from_right(
+                self.clip_data, new_duration, self.clip_data.max_duration_frames
+            ):
+                self._update_position()
+
+    def _update_position(self):
+        view = self.scene().views()[0]
+        new_x_pos = (
+            self.theme["LEFT_MARGIN"]
+            + self.clip_data.start_frame
+            * self.theme["BASE_PIXELS_PER_FRAME"]
+            * view.h_zoom
+        )
+        new_width = (
+            self.clip_data.duration_frames
+            * self.theme["BASE_PIXELS_PER_FRAME"]
+            * view.h_zoom
+        )
+        self.setGeometry(new_x_pos, self._fixed_y, new_width, self.rect.height())
+        self.update()
+        if self.scene():
+            self.scene().update()
+
     def mouseReleaseEvent(self, event):
+        self._resize_handle = None
+        self._drag_start_pos = None
+        self._drag_start_data = None
+        
+        if not self._resize_handle:
+            self._handle_move(event)
+        
+        super().mouseReleaseEvent(event)
+
+    def _handle_move(self, event):
         view = self.scene().views()[0]
 
         # Compute the candidate frame from the current x position.
@@ -469,7 +636,7 @@ class ClipItem(QGraphicsItem):
                 candidate_options.append(other_end)
 
             # If the end of our clip (if placed at candidate) would be within 
-            # tolerance of another clip’s start, add that option.
+            # tolerance of another clip's start, add that option.
             if (
                 abs(
                     original_candidate
@@ -500,8 +667,9 @@ class ClipItem(QGraphicsItem):
                 candidate = original_candidate
                 break
 
-        # Update our clip's start_frame and reposition it.
-        self.clip_data.start_frame = max(0, candidate)
+        if self.resize_controller:
+            self.resize_controller.move_clip(self.clip_data, max(0, candidate))
+        
         new_x_pos = (
             self.theme["LEFT_MARGIN"]
             + self.clip_data.start_frame
@@ -509,7 +677,6 @@ class ClipItem(QGraphicsItem):
             * view.h_zoom
         )
         self.setPos(new_x_pos, self._fixed_y)
-        super().mouseReleaseEvent(event)
 
 class TimelineView(QGraphicsView):
     def __init__(self, theme, parent=None):
@@ -640,10 +807,18 @@ class TimelineView(QGraphicsView):
                 clip_height = track.height * self.v_zoom
                 clipItem = ClipItem(clip, track, theme=self.theme)
                 clipItem.setGeometry(clip_x, clip_y, clip_width, clip_height)
+                # Assigner le controller de redimensionnement si disponible
+                if hasattr(self, '_resize_controller') and self._resize_controller:
+                    clipItem.set_resize_controller(self._resize_controller)
                 self.scene_obj.addItem(clipItem)
                 self.clipItems.append(clipItem)
             current_y += track.height * self.v_zoom + self.TRACK_SPACING
         self.viewport().update()
+
+    def set_resize_controller(self, controller):
+        self._resize_controller = controller
+        for clip_item in self.clipItems:
+            clip_item.set_resize_controller(controller)
 
     def setHZoom(self, value):
         self.h_zoom = 0.5 + (value / 100.0) * 3.5
@@ -756,3 +931,9 @@ class TimelineWidget(QWidget):
 
     def addTrack(self, track):
         self.timeline_view.addTrack(track)
+        if hasattr(self, '_resize_controller') and self._resize_controller:
+            self.timeline_view.set_resize_controller(self._resize_controller)
+    
+    def set_resize_controller(self, controller):
+        self._resize_controller = controller
+        self.timeline_view.set_resize_controller(controller)
