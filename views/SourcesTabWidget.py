@@ -71,19 +71,21 @@ class SourcesTabWidget(QWidget):
         durationLabel.setStyleSheet("min-width: 50px; text-align: right;")
         rowLayout.addWidget(durationLabel)
 
-    
-        chooseTrack = ChooseTrackDialog(self.timeline_controller, laSource)
-        chooseTrack.show()
-        row.clicked.connect(lambda : self.addClipToTrack(
-                laSource,
-                chooseTrack.getLaTimeline()
-            )
-        )
+        row.clicked.connect(lambda : self.selectTimelineAndAddClipToTrack(laSource))
 
         # Insert before the final stretch
         self.tracksLayout.insertWidget(self.tracksLayout.count() - 1, row)
 
         self.source_controller.sources.append(laSource)
+
+    def selectTimelineAndAddClipToTrack(self, laSource: Source):
+        chooseTrack = ChooseTrackDialog(self.timeline_controller, laSource)
+        chooseTrack.exec()
+        # WAIT HERE UTIL THE QDIALOG IS FINISEHD
+        self.addClipToTrack(
+                laSource,
+                chooseTrack.getLaTimeline()
+            )
 
     def addClipToTrack(self, source: Source, target_timeline: Timeline):
         """
