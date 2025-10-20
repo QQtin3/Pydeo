@@ -8,6 +8,7 @@ import sys
 import os
 
 from controller.VideoPreviewController import VideoPreviewController
+from controller.ClipResizeController import ClipResizeController
 from model.TimelineClip import TimelineClip
 from .ClipDialog import ClipDialog
 from .EffectsTab import EffectsTab
@@ -147,6 +148,10 @@ class VideoEditor(QMainWindow):
         
         # Timeline area
         self.timeline = TimelineWidget("dark")
+        
+        # Controller pour redimensionnement des clips
+        self.clipResizeController = ClipResizeController()
+        self.timeline.set_resize_controller(self.clipResizeController)
 
         """
         Démo track timeline
@@ -157,17 +162,17 @@ class VideoEditor(QMainWindow):
         tracka1 = TrackData("Audio 1")
         tracka2 = TrackData("Audio 2")
 
-        trackv1.add_clip(ClipData("Clip_A", 10, 50))
-        trackv1.add_clip(ClipData("Clip_B", 70, 40))
+        trackv1.add_clip(ClipData("Clip_A", 10, 50, 100))
+        trackv1.add_clip(ClipData("Clip_B", 70, 40, 80))
 
-        tracka2.add_clip(ClipData("Sound_A", 20, 60))
-        tracka2.add_clip(ClipData("Music_08", 90, 30))
+        tracka2.add_clip(ClipData("Sound_A", 20, 60, 120))
+        tracka2.add_clip(ClipData("Music_08", 90, 30, 60))
 
-        trackv2.add_clip(ClipData("Mov_A", 0, 60))
-        trackv2.add_clip(ClipData("Avi_B", 61, 90))
+        trackv2.add_clip(ClipData("Mov_A", 0, 60, 120))
+        trackv2.add_clip(ClipData("Avi_B", 61, 90, 150))
 
-        tracka1.add_clip(ClipData("Music_16", 0, 30))
-        tracka1.add_clip(ClipData("Sound_B", 120, 30))
+        tracka1.add_clip(ClipData("Music_16", 0, 30, 60))
+        tracka1.add_clip(ClipData("Sound_B", 120, 30, 60))
 
         self.timeline.addTrack(trackv2)
         self.timeline.addTrack(trackv1)
