@@ -1,6 +1,15 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QPushButton, QHBoxLayout, QLabel
 
+from controller.SourceController import SourceController
+from controller.TimelineController import TimelineController
+
+from model.Source import Source
+from model.Timeline import Timeline
+
+from model.TimelineClip import TimelineClip
+
+from views.ChooseTrackDialog import ChooseTrackDialog
 
 class SourcesTabWidget(QWidget):
     """Widget used inside the tab bar for managing media sources.
@@ -11,8 +20,10 @@ class SourcesTabWidget(QWidget):
     """
 
     importRequested = Signal()
+    
+    timeline_controller: TimelineController
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, timeline_controller, source_controller, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         # Root layout
@@ -38,10 +49,17 @@ class SourcesTabWidget(QWidget):
         btnRow.addWidget(self.importVideoBtn)
         layout.addLayout(btnRow)
 
+        self.source_controller = source_controller
+        self.timeline_controller = timeline_controller
+
     # ----- Public API -----------------------------------------------------
-    def addSourceItem(self, fileName: str, durationSec: float) -> None:
+    def addSourceItem(self, fileName: str, durationSec: float, filePath: str) -> None:
         """Append a simple row widget describing an imported source."""
-        row = QWidget()
+        laSource = Source()
+        laSource.name = fileName
+        laSource.filepath = filePath
+
+        row = QPushButton()
         rowLayout = QHBoxLayout(row)
         rowLayout.setContentsMargins(5, 2, 5, 2)
 
@@ -53,5 +71,23 @@ class SourcesTabWidget(QWidget):
         durationLabel.setStyleSheet("min-width: 50px; text-align: right;")
         rowLayout.addWidget(durationLabel)
 
+    
+        chooseTrack = ChooseTrackDialog(self.timeline_controller, laSource)
+        chooseTrack.show()
+        row.clicked.connect(lambda : self.addClipToTrack(
+                laSource,
+                chooseTrack.getLaTimeline()
+            )
+        )
+
         # Insert before the final stretch
         self.tracksLayout.insertWidget(self.tracksLayout.count() - 1, row)
+
+        self.source_controller.sources.append(laSource)
+
+    def addClipToTrack(self, source: Source, target_timeline: Timeline):
+        """
+        Lorsque la source est cliquée
+        """
+        clip = self.timeline_controller.addClip(target_timeline, source.name, source)
+        target_timeline.add_clip(clip)

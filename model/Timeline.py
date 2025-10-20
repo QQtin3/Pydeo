@@ -12,17 +12,17 @@ class TimelineType(Enum):
 class Timeline:
     name: str
     height: int
-    type: TimelineType
+    typee: TimelineType
     clips: list[TimelineClip]
         
-    def __init__(self, name, height = None, type = TimelineType.VIDEO) -> None:
+    def __init__(self, name, height = None, typee = TimelineType.VIDEO) -> None:
         self.name = name
         self.height = (
             height 
             if height is not None 
             else DEFAULT_CONSTANTS["DEFAULT_TRACK_HEIGHT"]
         )
-        self.type = type
+        self.typee = typee
         self.clips = []
 
     def add_clip(self, clip):

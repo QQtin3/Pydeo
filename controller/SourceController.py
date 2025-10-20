@@ -5,4 +5,4 @@ class SourceController:
     sources: list[Source]
     
     def __init__(self) -> None:
-        pass
+        self.sources = []
