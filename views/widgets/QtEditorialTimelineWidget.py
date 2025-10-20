@@ -114,10 +114,23 @@ class TrackData:
         self.clips.append(clip)
 
 class ClipData:
-    def __init__(self, title, start_frame, duration_frames):
+    def __init__(self, title, start_frame, duration_frames, max_duration_frames=None):
         self.title = title
         self.start_frame = start_frame
         self.duration_frames = duration_frames
+        self.max_duration_frames = max_duration_frames or duration_frames  # Durée maximale autorisée
+    
+    def get_end_frame(self):
+        return self.start_frame + self.duration_frames
+    
+    def can_resize_to(self, new_duration_frames):
+        return 1 <= new_duration_frames <= self.max_duration_frames
+    
+    def can_move_to(self, new_start_frame, min_start=0):
+        return new_start_frame >= min_start
+    
+    def get_original_duration(self):
+        return self.max_duration_frames
 
 
 # --- Graphics Items ---
