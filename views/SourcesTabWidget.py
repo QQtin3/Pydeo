@@ -9,6 +9,8 @@ from model.Timeline import Timeline
 
 from model.TimelineClip import TimelineClip
 
+from views.ChooseTrackDialog import ChooseTrackDialog
+
 class SourcesTabWidget(QWidget):
     """Widget used inside the tab bar for managing media sources.
 
@@ -55,7 +57,7 @@ class SourcesTabWidget(QWidget):
         laSource.name = fileName
         laSource.filepath = filePath
 
-        row = QWidget()
+        row = QPushButton()
         rowLayout = QHBoxLayout(row)
         rowLayout.setContentsMargins(5, 2, 5, 2)
 
@@ -67,12 +69,16 @@ class SourcesTabWidget(QWidget):
         durationLabel.setStyleSheet("min-width: 50px; text-align: right;")
         rowLayout.addWidget(durationLabel)
 
-        row.clicked.connect(lambda laSource : ChooseTrackDialog(self.timeline_controller, laSource))
+        row.clicked.connect(lambda : self.addClipToTrack(
+                laSource,
+                ChooseTrackDialog(self.timeline_controller, laSource)
+            )
+        )
 
         # Insert before the final stretch
         self.tracksLayout.insertWidget(self.tracksLayout.count() - 1, row)
 
-        self.sourceController.sources.append(laSource)
+        self.source_controller.sources.append(laSource)
 
     def addClipToTrack(self, source: Source, target_timeline: Timeline):
         """
