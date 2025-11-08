@@ -1,6 +1,4 @@
 from PySide6.QtWidgets import (
-    QApplication,
-    QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -12,7 +10,7 @@ from PySide6.QtWidgets import (
     QGraphicsItem,
 )
 from PySide6.QtGui import QPainter, QPen, QColor, QPolygonF, QFont
-from PySide6.QtCore import Qt, QRectF, QTimer, QPointF
+from PySide6.QtCore import Qt, QRectF, QTimer, QPointF, QObject, Signal
 
 from controller.TimelineController import TimelineController
 from controller.VideoController import frames_to_timecode
@@ -287,6 +285,8 @@ class PlayheadLineItem(QGraphicsItem):
         new_frame = (self.pos().x() - self.theme["LEFT_MARGIN"]) / (
             self.theme["BASE_PIXELS_PER_FRAME"] * view.h_zoom
         )
+        # if new_frame >= 0:
+            # self.dragSignal.emit(new_frame)
         self.timeline.setPlayheadFrame(new_frame)
 
 
@@ -679,6 +679,8 @@ class ClipItem(QGraphicsItem):
         self.setPos(new_x_pos, self._fixed_y)
 
 class TimelineView(QGraphicsView):
+    dragSignal = Signal(float)
+    
     def __init__(self, theme, parent=None):
         super().__init__(parent)
         
@@ -834,9 +836,11 @@ class TimelineView(QGraphicsView):
         self.updateLayout()
 
     def setPlayheadFrame(self, frame):
-        self.playhead_frame = frame
-        self.timeLabelItem.updateTime(self.playhead_frame)
-        self.updateLayout()
+        if frame >= 0:
+            self.dragSignal.emit(frame)
+            self.playhead_frame = frame
+            self.timeLabelItem.updateTime(self.playhead_frame)
+            self.updateLayout()
 
     def setEndFrame(self, frame):
         min_end = self.minimum_end_frame()

@@ -7,7 +7,7 @@ from controller.TimelineController import TimelineController
 from model.Source import Source
 from model.Timeline import Timeline
 
-from model.TimelineClip import TimelineClip
+from model.TimelineClip import TimelineClip, TimelineVideoClip
 
 from views.ChooseTrackDialog import ChooseTrackDialog
 
@@ -85,7 +85,7 @@ class SourcesTabWidget(QWidget):
                 laSource,
                 chooseTrack.getLaTimeline()
             )
-        self.timeline_controller.view.updateLayout()
+        self.timeline_controller.view.timeline.timeline_view.updateLayout()
 
     def addClipToTrack(self, source: Source, target_timeline: Timeline):
         """
@@ -93,3 +93,8 @@ class SourcesTabWidget(QWidget):
         """
         clip = self.timeline_controller.addClip(target_timeline, source.name, source)
         target_timeline.add_clip(clip)
+        
+        if clip is TimelineVideoClip:
+            self.selectTimelineAndAddClipToTrack(Source(c))
+        
+        self.timeline_controller.view.videoController.loadVideo(self.timeline_controller.timelines)
