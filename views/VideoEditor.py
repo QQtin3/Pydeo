@@ -331,24 +331,44 @@ class VideoEditor(QMainWindow):
     #     return newTimeline
 
     def exportVideo(self) -> None:
-        if not self.clips:
+        if not self.timelineController.timelines:
             self.statusManager.update_status("Erreur: Aucun clip à exporter")
             return
-            
+
         filePath, _ = QFileDialog.getSaveFileName(
             self, "Exporter la vidéo", "", "Fichiers vidéo (*.mp4)"
         )
-        
-        if filePath:
-            try:
-                # In a real implementation, this would composite the clips and export
-                self.statusManager.update_status(f"État: Export en cours vers {filePath}...")
-                
-                # Simulate export progress
-                QTimer.singleShot(2000, lambda: self.statusManager.update_status(f"État: Vidéo exportée vers {filePath}"))
-                
-            except Exception as e:
-                self.statusManager.update_status(f"Erreur d'export: {str(e)}")
+
+        if not filePath:
+            return
+
+        try:
+            self.statusManager.update_status(f"État: Export en cours vers {filePath}...")
+
+            # Render the full timeline at full resolution and FPS
+            videoClip, audioClip = self.videoController.render(self.timelineController.timelines)
+
+            # If audio exists, attach it
+            if audioClip:
+                videoClip.audio = audioClip
+
+            # Export using MoviePy (full FPS & resolution)
+            # Optional: adjust codec, preset, bitrate for faster or higher quality export
+            videoClip.write_videofile(
+                filePath,
+                fps=self.videoController.fps,
+                codec="libx264",
+                audio_codec="aac",
+                preset="medium",
+                threads=4,
+                temp_audiofile="temp-audio.m4a",
+                remove_temp=True,
+            )
+
+            self.statusManager.update_status(f"État: Vidéo exportée vers {filePath}")
+
+        except Exception as e:
+            self.statusManager.update_status(f"Erreur d'export: {str(e)}")
     
     def onVideoTimeChanged(self, time):
         """Called when video time changes during playback"""

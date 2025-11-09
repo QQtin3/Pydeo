@@ -17,7 +17,7 @@ if __name__ == "__main__":
     
     export_action = file_menu.addAction("Exporter la vidéo")
     export_action.triggered.connect(editor.exportVideo)
-    export_action.setEnabled(False)
+    export_action.setEnabled(True)
     editor.exportBtn = export_action  # Store reference for enabling later
     
     file_menu.addSeparator()
