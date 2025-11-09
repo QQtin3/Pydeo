@@ -136,7 +136,6 @@ class VideoEditor(QMainWindow):
         self.effectsTab = EffectsTab()
         self.effectsTab.timelineController = self.timelineController  # Défini le controller pour les effets
 
-        self.effectsTab.timelineController = self.timelineController
         self.timelineController.videoPreviewController = self.videoController
 
         self.tabs.addTab(self.sourcesTab, "Sources")

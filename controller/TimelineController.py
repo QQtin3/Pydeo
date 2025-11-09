@@ -42,8 +42,6 @@ class TimelineController:
         self.view.timeline.timeline_view.updateLayout()
         return clip
 
-        self.view.updateLayout()
-        return clip
 
     def onClipClicked(self, clip):
         self.selectedClip = clip
