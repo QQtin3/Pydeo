@@ -10,7 +10,8 @@ from PySide6.QtWidgets import (
     QGraphicsItem,
 )
 from PySide6.QtGui import QPainter, QPen, QColor, QPolygonF, QFont
-from PySide6.QtCore import Qt, QRectF, QTimer, QPointF, QObject, Signal
+from PySide6.QtCore import Qt, QRectF, QTimer, QPointF
+from PySide6.QtCore import Signal
 
 from controller.TimelineController import TimelineController
 from controller.VideoController import frames_to_timecode
@@ -529,6 +530,13 @@ class ClipItem(QGraphicsItem):
         
         super().mousePressEvent(event)
 
+        # Message pour la sélection de l'item dans TimelineController
+        scene = self.scene()
+        if scene and scene.views():
+            view = scene.views()[0]
+            if hasattr(view, "clipClicked"):
+                view.clipClicked.emit(self.clip_data)
+
     def mouseMoveEvent(self, event):
         if self._resize_handle and self._drag_start_pos:
             # Redimensionnement en cours
@@ -679,6 +687,8 @@ class ClipItem(QGraphicsItem):
         self.setPos(new_x_pos, self._fixed_y)
 
 class TimelineView(QGraphicsView):
+    clipClicked = Signal(object)
+
     dragSignal = Signal(float)
     
     def __init__(self, theme, parent=None):

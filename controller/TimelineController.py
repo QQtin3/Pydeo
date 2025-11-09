@@ -17,8 +17,12 @@ class TimelineController:
     
     def __init__(self, view) -> None:
         # keep a reference to the view instance (injected by the view)
+        self.selectedClip = None
         self.view = view
         self.timelines = []
+
+        if hasattr(self.view, "clipClicked"):
+            self.view.clipClicked.connect(self.onClipClicked)
         
     def createTimeline(self, name: str, type: TimelineType) -> Timeline:
         timeline = Timeline(name, None, type)
@@ -35,6 +39,10 @@ class TimelineController:
             clip = TimelineVideoClip(name, source, start_frame, fps=24)
         else: #timeline.type == AUDIO
             clip = TimelineAudioClip(name, source, start_frame)
-        
         self.view.timeline.timeline_view.updateLayout()
         return clip
+
+
+    def onClipClicked(self, clip):
+        self.selectedClip = clip
+        print(f"[TimelineController] Selected clip: {clip.title}")

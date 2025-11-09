@@ -1,4 +1,5 @@
 from moviepy import VideoClip, TextClip, CompositeVideoClip
+from moviepy.Clip import Clip
 from moviepy.video.fx.MultiplySpeed import MultiplySpeed
 from moviepy.video.fx.BlackAndWhite import BlackAndWhite
 from moviepy.video.fx.LumContrast import LumContrast
@@ -9,19 +10,44 @@ from controller.utils.VarConstraintChecker import constraintPositiveNumber, cons
 
 from .utils.VarConstraintChecker import constraintPositiveNumber, constraintNotEmptyText
 
+from model.Effects import VideoEffectEnum
+
+
+def apply_video_effects(video_clip, effects):
+	"""Apply all stored VideoEffects sequentially."""
+	for eff in effects:
+		if eff.effect == VideoEffectEnum.BLACK_AND_WHITE:
+			video_clip = videoBlackWhiteEffect(video_clip)
+		elif eff.effect == VideoEffectEnum.SPEED:
+			speed = eff.params.get("speed", 1.0)
+			video_clip = videoSpeedEffect(video_clip, speed)
+		elif eff.effect == VideoEffectEnum.CONTRAST:
+			lum = eff.params.get("lum", 0)
+			contrast = eff.params.get("contrast", 1)
+			video_clip = videoContrastEffect(video_clip, lum, contrast)
+		elif eff.effect == VideoEffectEnum.SATURATION:
+			saturation = eff.params.get("saturation", 1)
+			video_clip = videoSaturationEffect(video_clip, saturation)
+		elif eff.effect == VideoEffectEnum.ROTATION:
+			rotation = eff.params.get("rotation", 0)
+			video_clip = videoRotationEffect(video_clip, rotation)
+	return video_clip
+
+
 # --- Helper Function ---
 def frames_to_timecode(frames, fps=24) -> str:
-    seconds = frames // fps
-    frames_rem = frames % fps
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    seconds_rem = seconds % 60
-    return f"{hours:02}:{minutes:02}:{seconds_rem:02}:{frames_rem:02}"
+	seconds = frames // fps
+	frames_rem = frames % fps
+	hours = seconds // 3600
+	minutes = (seconds % 3600) // 60
+	seconds_rem = seconds % 60
+	return f"{hours:02}:{minutes:02}:{seconds_rem:02}:{frames_rem:02}"
+
 
 def seconds_to_frames(seconds: float, fps=24) -> int:
-    seconds = float(round(seconds, 2))
-    
-    return int(round(seconds * fps))
+	seconds = float(round(seconds, 2))
+
+	return int(round(seconds * fps))
 
 
 def cutVideo(video: VideoClip, cuttingFrame: int, framerate: int) -> tuple[VideoClip, VideoClip]:
@@ -66,46 +92,48 @@ def addingText(video: VideoClip, frames: int, framerate: int, text: str, positio
 		fontsize (int): Text size
 		color (str): Text color
 	Returns:
-    	VideoClip: Clip with the text added to it
-    """
+		VideoClip: Clip with the text added to it
+	"""
 	constraintPositiveNumber(frames)
 	constraintPositiveNumber(framerate)
 	constraintPositiveNumber(fontsize)
 	constraintNotEmptyText(text)
 	constraintNotEmptyText(position)
 	constraintNotEmptyText(color)
-	
+
 	txtClip = TextClip(text=text, font_size=fontsize, color=color)
 	txtClip = txtClip.with_position(position).with_duration(frames / framerate)
-	
+
 	# Overlay the text clip on the first video clip
 	return CompositeVideoClip([video, txtClip])
 
 
-def videoSpeedEffect(video: VideoClip, newspeed: float) -> VideoClip:
+def videoSpeedEffect(video: VideoClip, newspeed: float) -> Clip:
 	"""Change video speed & returns it
 
 		Args:
 			video (VideoClip): VideoClip object that will be cutted
 			newspeed (float): New clip speed (between 0 & 1)
 		Returns:
-	    	VideoClip: New clip with changed speed
-	    """
+			Clip: New clip with changed speed
+		"""
 	constraintPourcentageNumber(newspeed)
-	return VideoClip(MultiplySpeed(newspeed).apply(video))
+	return MultiplySpeed(newspeed).apply(video)
 
-def videoBlackWhiteEffect(video: VideoClip) -> VideoClip:
+
+def videoBlackWhiteEffect(video: VideoClip) -> Clip:
 	"""Apply the black & white effect on a video clip
 
 	Args:
 		video (VideoClip): The clip to apply on the effect
 
 	Returns:
-		VideoClip: The video clip with the applied effect
+		Clip: The video clip with the applied effect
 	"""
-	return VideoClip(BlackAndWhite().apply(video))
+	return BlackAndWhite().apply(video)
 
-def videoContrastEffect(video: VideoClip, lum: float, contrast: float) -> VideoClip:
+
+def videoContrastEffect(video: VideoClip, lum: float, contrast: float) -> Clip:
 	"""Apply the contrast effect with given parameters to the video clip
 
 	Args:
@@ -114,31 +142,33 @@ def videoContrastEffect(video: VideoClip, lum: float, contrast: float) -> VideoC
 		contrast (float): Contrast of the clip
 
 	Returns:
-		VideoClip: The video clip with the applied effect
+		Clip: The video clip with the applied effect
 	"""
-	return VideoClip(LumContrast(lum, contrast).apply(video))
+	return LumContrast(lum, contrast).apply(video)
 
-def videoSaturationEffect(video: VideoClip, saturation: float) -> VideoClip:
+
+def videoSaturationEffect(video: VideoClip, saturation: float) -> Clip:
 	"""Apply the saturation effect with given parameters to the video clip
 
 	Args:
 		video (VideoClip): The clip to apply on the effect
-		saturation (float): Saturation of the clip		
+		saturation (float): Saturation of the clip
 
 	Returns:
-		VideoClip: The video clip with the applied effect
+		Clip: The video clip with the applied effect
 	"""
-	return VideoClip(Painting(saturation).apply(video))
+	return Painting(saturation).apply(video)
 
-def videoRotationEffect(video: VideoClip, rotation: float) -> VideoClip:
+
+def videoRotationEffect(video: VideoClip, rotation: float) -> Clip:
 	"""Apply the saturation effect with given parameters to the video clip
 
 	Args:
 		video (VideoClip): The clip to apply on the effect
-		rotation (float): Rotation of the clip (in degrees)		
+		rotation (float): Rotation of the clip (in degrees)
 
 	Returns:
-		VideoClip: The video clip with the applied effect
+		Clip: The video clip with the applied effect
 	"""
- 	
-	return VideoClip(Rotate(rotation).apply(video))
+
+	return Rotate(rotation).apply(video)

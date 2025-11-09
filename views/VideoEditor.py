@@ -133,10 +133,13 @@ class VideoEditor(QMainWindow):
         self.sourcesTab = SourcesTabWidget(self.timelineController, self.sourceController)
         self.sourcesTab.importRequested.connect(self.importVideo)
 
-        effectsTab = EffectsTab()
+        self.effectsTab = EffectsTab()
+        self.effectsTab.timelineController = self.timelineController  # Défini le controller pour les effets
+
+        self.timelineController.videoPreviewController = self.videoController
 
         self.tabs.addTab(self.sourcesTab, "Sources")
-        self.tabs.addTab(effectsTab, "Effets")
+        self.tabs.addTab(self.effectsTab, "Effets")
 
         rightLayout.addWidget(self.tabs)
         mainSplitter.addWidget(rightWidget)

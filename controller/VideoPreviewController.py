@@ -1,7 +1,7 @@
 from PySide6.QtCore import QObject, QTimer, Signal
 from moviepy import AudioClip, AudioFileClip, CompositeAudioClip, VideoClip, CompositeVideoClip
 
-from controller.VideoController import cutVideo
+from controller.VideoController import cutVideo, apply_video_effects
 from model.Timeline import Timeline
 from model.TimelineClip import TimelineAudioClip, TimelineClip, TimelineVideoClip
 from views.VideoPreviewWidget import VideoPreviewWidget
@@ -225,16 +225,31 @@ class VideoPreviewController(QObject):
                         
                     case _:
                         pass
-
+        
         videoClip, audioClip = None, None
         if len(videoClips) == 0:
             videoClip = VideoClip()
         else:
             videoClip = CompositeVideoClip(videoClips, (1920, 1080))
-            
+
         if len(audioClips) == 0:
             audioClip = AudioClip()
         else:
             audioClip = CompositeAudioClip(audioClips)
-                        
+
         return videoClip, audioClip
+
+    def refreshPreview(self, selectedClip):
+        """Rebuild the current clip preview when effects are added."""
+        if not selectedClip or not hasattr(selectedClip, "videoClip"):
+            print("[VideoPreviewController] No valid clip to preview.")
+            return
+
+        try:
+            processed_clip = apply_video_effects(selectedClip.videoClip, getattr(selectedClip, "effects", []))
+            self.clip = processed_clip
+            self.duration = processed_clip.duration
+            self.seek(0)
+            print(f"[VideoPreviewController] Preview refreshed with {len(selectedClip.effects)} effect(s).")
+        except Exception as e:
+            print(f"[VideoPreviewController] Error refreshing preview: {e}")
