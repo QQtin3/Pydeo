@@ -53,22 +53,29 @@ def seconds_to_frames(seconds: float, fps=24) -> int:
 def cutVideo(video: VideoClip, cuttingFrame: int, framerate: int) -> tuple[VideoClip, VideoClip]:
 	"""Cut a part of a VideoClip & returns it
 
-	Args:
-		video (VideoClip): VideoClip object that will be cutted
-		cuttingFrame (int): Frame that will be used to cut the video
-		framerate (int): Video framerate
-	Returns:
-		tuple[VideoClip, VideoClip]: 2 VideoClips, one before & one after the cut
-
-	Raises:
-		:exception If the cutting frame is lower or equal the video duration
-	"""
-	videoDuration = video.duration * framerate
-	if videoDuration <= cuttingFrame:
+    Args:
+        video (VideoClip): VideoClip object that will be cutted
+        cuttingFrame (int): Frame that will be used to cut the video
+        framerate (int): Video framerate
+    Returns:
+        tuple[VideoClip, VideoClip]: 2 VideoClips, one before & one after the cut
+        
+    Raises:
+        :exception If the cutting frame is lower or equal the video duration
+    """
+	videoDuration = int(round(video.duration * framerate))
+	if videoDuration < cuttingFrame:
 		raise Exception('Cutting time cannot be higher than video duration.')
 
-	beforeCut = video.subclipped(0, cuttingFrame / framerate)
-	afterCut = video.subclipped(videoDuration - (cuttingFrame / framerate), videoDuration)
+	cuttingTime = cuttingFrame / framerate
+	if cuttingTime >= video.duration:
+		cuttingTime = video.duration
+ 
+	beforeCut = video.subclipped(0, cuttingTime)
+	if cuttingTime < video.duration:
+		afterCut = video.subclipped(cuttingTime, video.duration)
+	else:
+		afterCut = VideoClip()
 	return beforeCut, afterCut
 
 

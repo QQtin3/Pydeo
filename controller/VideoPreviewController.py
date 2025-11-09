@@ -1,9 +1,9 @@
 from PySide6.QtCore import QObject, QTimer, Signal
-from moviepy import AudioClip, CompositeAudioClip, VideoClip, CompositeVideoClip
+from moviepy import AudioClip, AudioFileClip, CompositeAudioClip, VideoClip, CompositeVideoClip
 
 from controller.VideoController import cutVideo, apply_video_effects
 from model.Timeline import Timeline
-from model.TimelineClip import TimelineClip
+from model.TimelineClip import TimelineAudioClip, TimelineClip, TimelineVideoClip
 from views.VideoPreviewWidget import VideoPreviewWidget
 from model.Source import Source
 
@@ -42,9 +42,10 @@ class VideoPreviewController(QObject):
     clip: VideoClip | None
     audio: AudioClip | None
     fps: int
-    duration: float
+    duration: int
     currentTime: float
     isPlaying: bool
+    previewFps: int
 
     def __init__(self, widget: VideoPreviewWidget, fps=24):
         super().__init__()
@@ -55,42 +56,48 @@ class VideoPreviewController(QObject):
         self.duration = 0
         self.currentTime = 0
         self.isPlaying = False
+        
+        self.previewFps = 12
 
         # Timer for playback
         self.timer = QTimer()
         self.timer.timeout.connect(self._update_frame)
+        
+    def getDuration(self):
+        return self.duration
 
-    def loadVideo(self, path: str) -> bool:
-        try:
-            laSource = Source()
-            laSource.name = os.path.basename(path or "")
-            laSource.filepath = path
-            self.clip, self.audio, self.fps = readVideoFile(laSource)
-            self.duration = self.clip.duration
-            self.currentTime = 0
-            self.durationChanged.emit(self.duration)
-            self.seek(0)
-            return True
-        except Exception as e:
-            print(f"Error loading video: {e}")
-            return False
-    """
+    # def loadVideo(self, path: str) -> bool:
+    #     try:
+    #         laSource = Source()
+    #         laSource.name = os.path.basename(path or "")
+    #         laSource.filepath = path
+    #         self.clip, self.audio, self.fps = readVideoFile(laSource)
+    #         self.duration = self.clip.duration
+    #         self.currentTime = 0
+    #         self.durationChanged.emit(self.duration)
+    #         self.seek(0)
+    #         return True
+    #     except Exception as e:
+    #         print(f"Error loading video: {e}")
+    #         return False
+    
     def loadVideo(self, timelines: list[Timeline]) -> bool:
-        try:
-            #self.clip, self.audio = self.render(timelines)
-            self.duration = 10# self.clip.duration
-            self.currentTime = 0
-            self.durationChanged.emit(self.duration)
-            self.seek(0)
-            return True
-        except Exception as e:
-            print(f"Error loading video: {e}")
-            return False
-    """
+        self.clip, self.audio = self.render(timelines)
+        # self.clip = timelines[1].clips[0].videoClip
+        
+        # self.clip = self.clip.with_fps(self.fps)
+        
+        self.duration = int(round(self.clip.duration * self.fps))
+        self.currentTime = 0
+        self.durationChanged.emit(self.duration)
+        self.seek(0)
+        return True
+
+    
     def play(self):
         if self.clip and not self.isPlaying:
             self.isPlaying = True
-            self.timer.start(int(1000 / self.fps))
+            self.timer.start(int((1 / self.previewFps) * 1000))
             self.playbackStateChanged.emit(True)
 
     def pause(self):
@@ -114,19 +121,17 @@ class VideoPreviewController(QObject):
             return
         t = max(0, min(t, self.duration))
         self.currentTime = t
-        try:
-            frame = self.clip.get_frame(t)
-            self.widget.set_frame(frame)
-            self.timeChanged.emit(t)
-        except Exception as e:
-            print(f"Seek error: {e}")
+
+        frame = self.clip.get_frame(t)
+        self.widget.set_frame(frame)
+        self.timeChanged.emit(t)
 
     def _update_frame(self):
         if not self.clip:
             self.pause()
             return
 
-        self.currentTime += 1.0 / self.fps
+        self.currentTime += (1 / self.previewFps) * self.fps
         if self.currentTime >= self.duration:
             self.currentTime = self.duration
             self.pause()
@@ -141,21 +146,24 @@ class VideoPreviewController(QObject):
             
     def getClips(self, timelines: list[Timeline]) -> list[SubClip]: 
         indexes = []
-        clips = []
+        clips :list[TimelineClip] = []
         subClips = []
         
         for t in timelines:
             clips.extend(t.clips)
-            indexes.extend([timelines.index(t)] * len(t.clips))
+            indexes.extend([len(timelines) - timelines.index(t)] * len(t.clips))
             
-        clips.sort(key=lambda c: c.start)
+        clips.sort(key=lambda c: c.start_frame)
+        
+        if len(clips) == 1:
+            subClips.append(SubClip([clips[0]], [indexes[0]], clips[0].start_frame, clips[0].end))
         
         for i in range(len(clips) - 1):
-            if clips[i].end > clips[i+1].start:
+            if clips[i].end > clips[i+1].start_frame:
                 subClips.append(SubClip(
                     [clips[i]], 
                     [indexes[i]], 
-                    clips[i].start, 
+                    clips[i].start_frame, 
                     clips[i].end
                 ))
                 
@@ -163,7 +171,7 @@ class VideoPreviewController(QObject):
                     subClips.append(SubClip(
                             [clips[i], clips[i+1]], 
                             [indexes[i], indexes[i+1]], 
-                            clips[i+1].start, 
+                            clips[i+1].start_frame, 
                             clips[i].end
                     ))
                     subClips.append(SubClip(
@@ -176,7 +184,7 @@ class VideoPreviewController(QObject):
                     subClips.append(SubClip(
                         [clips[i], clips[i+1]], 
                         [indexes[i], indexes[i+1]], 
-                        clips[i+1].start, 
+                        clips[i+1].start_frame, 
                         clips[i].end
                     ))
                     subClips.append(SubClip(
@@ -196,18 +204,19 @@ class VideoPreviewController(QObject):
         for subClip in subClips:
             for i in range(len(subClip)):
                 clip, index = subClip.getClipAndIndex(i)
-                match type(clip):
-                    case "VideoTimelineClip":
-                        frame = (clip.end - clip.start) * clip.fps
-                        _, c = cutVideo(clip, frame, clip.fps)
+                match clip:
+                    case TimelineVideoClip():
+                        frame = clip.end - clip.start_frame
+                        c, _ = cutVideo(clip.videoClip, frame, clip.fps)
                         c.layer_index = index
-                        c.start = clip.start
-                        c.end = clip.end
+                        # c.start = clip.start_frame
+                        # c.end = clip.end
+                        # c.duration = c.end - c.start
                         
                         videoClips.append(c)
                         break
                     
-                    case "AudioTimelineClip":
+                    case TimelineAudioClip():
                         # TODO
                         # frame = (clip.end - clip.start) * clip.frequency
                         # c = cutVideo(clip, frame, clip.frequency)
@@ -216,7 +225,19 @@ class VideoPreviewController(QObject):
                         
                     case _:
                         pass
-        return CompositeVideoClip(videoClips), CompositeAudioClip(audioClips)
+        
+        videoClip, audioClip = None, None
+        if len(videoClips) == 0:
+            videoClip = VideoClip()
+        else:
+            videoClip = CompositeVideoClip(videoClips, (1920, 1080))
+
+        if len(audioClips) == 0:
+            audioClip = AudioClip()
+        else:
+            audioClip = CompositeAudioClip(audioClips)
+
+        return videoClip, audioClip
 
     def refreshPreview(self, selectedClip):
         """Rebuild the current clip preview when effects are added."""

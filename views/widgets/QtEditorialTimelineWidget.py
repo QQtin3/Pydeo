@@ -1,6 +1,4 @@
 from PySide6.QtWidgets import (
-    QApplication,
-    QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -288,6 +286,8 @@ class PlayheadLineItem(QGraphicsItem):
         new_frame = (self.pos().x() - self.theme["LEFT_MARGIN"]) / (
             self.theme["BASE_PIXELS_PER_FRAME"] * view.h_zoom
         )
+        # if new_frame >= 0:
+            # self.dragSignal.emit(new_frame)
         self.timeline.setPlayheadFrame(new_frame)
 
 
@@ -689,6 +689,8 @@ class ClipItem(QGraphicsItem):
 class TimelineView(QGraphicsView):
     clipClicked = Signal(object)
 
+    dragSignal = Signal(float)
+    
     def __init__(self, theme, parent=None):
         super().__init__(parent)
         
@@ -844,9 +846,11 @@ class TimelineView(QGraphicsView):
         self.updateLayout()
 
     def setPlayheadFrame(self, frame):
-        self.playhead_frame = frame
-        self.timeLabelItem.updateTime(self.playhead_frame)
-        self.updateLayout()
+        if frame >= 0:
+            self.dragSignal.emit(frame)
+            self.playhead_frame = frame
+            self.timeLabelItem.updateTime(self.playhead_frame)
+            self.updateLayout()
 
     def setEndFrame(self, frame):
         min_end = self.minimum_end_frame()

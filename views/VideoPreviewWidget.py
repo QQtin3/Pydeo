@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QWidget, QSizePolicy
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QPainter, QBrush, QColor, QImage, QPixmap
+import numpy as np
 
 
 class VideoPreviewWidget(QWidget):
@@ -22,6 +23,12 @@ class VideoPreviewWidget(QWidget):
             self.currentPixmap = None
             self.update()
             return
+
+        # Ensure the numpy buffer is C-contiguous. MoviePy can return
+        # views or Fortran-ordered arrays which are not acceptable
+        # for QImage memoryview; this prevents BufferError:
+        # "memoryview: underlying buffer is not C-contiguous"
+        frame = np.ascontiguousarray(frame)
 
         h, w, ch = frame.shape
         bytes_per_line = ch * w
