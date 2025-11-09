@@ -1,3 +1,4 @@
+import numpy as np
 from PySide6.QtCore import QObject, QTimer, Signal
 from moviepy import AudioClip, AudioFileClip, CompositeAudioClip, VideoClip, CompositeVideoClip
 
@@ -47,7 +48,7 @@ class VideoPreviewController(QObject):
     isPlaying: bool
     previewFps: int
 
-    def __init__(self, widget: VideoPreviewWidget, fps=24):
+    def __init__(self, widget: VideoPreviewWidget, fps=60):
         super().__init__()
         self.widget = widget  # VideoPreviewWidget (view)
         self.clip = None
@@ -56,8 +57,9 @@ class VideoPreviewController(QObject):
         self.duration = 0
         self.currentTime = 0
         self.isPlaying = False
+        self.frames = []
         
-        self.previewFps = 12
+        self.previewFps = 24
 
         # Timer for playback
         self.timer = QTimer()
@@ -83,13 +85,16 @@ class VideoPreviewController(QObject):
     
     def loadVideo(self, timelines: list[Timeline]) -> bool:
         self.clip, self.audio = self.render(timelines)
-        # self.clip = timelines[1].clips[0].videoClip
-        
-        # self.clip = self.clip.with_fps(self.fps)
-        
+
         self.duration = int(round(self.clip.duration * self.fps))
         self.currentTime = 0
         self.durationChanged.emit(self.duration)
+
+        self.frames = [
+            self.clip.get_frame(t)
+            for t in np.arange(0, self.clip.duration, 1 / self.previewFps)
+        ]
+
         self.seek(0)
         return True
 
@@ -122,22 +127,30 @@ class VideoPreviewController(QObject):
         t = max(0, min(t, self.duration))
         self.currentTime = t
 
+
+
         frame = self.clip.get_frame(t)
         self.widget.set_frame(frame)
         self.timeChanged.emit(t)
 
     def _update_frame(self):
-        if not self.clip:
+        if not self.frames:
             self.pause()
             return
 
-        self.currentTime += (1 / self.previewFps) * self.fps
-        if self.currentTime >= self.duration:
+        frame_index = int(self.currentTime * self.previewFps)
+        if frame_index >= len(self.frames):
             self.currentTime = self.duration
             self.pause()
             self.timeChanged.emit(self.currentTime)
             return
-        self.seek(self.currentTime)
+
+        frame = self.frames[frame_index]
+        self.widget.set_frame(frame)
+        self.timeChanged.emit(self.currentTime)
+
+        # Increment time
+        self.currentTime += 1 / self.previewFps
 
     def close(self):
         self.pause()
@@ -232,7 +245,7 @@ class VideoPreviewController(QObject):
         if len(videoClips) == 0:
             videoClip = VideoClip()
         else:
-            videoClip = CompositeVideoClip(videoClips, (1920, 1080))
+            videoClip = CompositeVideoClip(videoClips).resized(width=640)
 
         if len(audioClips) == 0:
             audioClip = AudioClip()
