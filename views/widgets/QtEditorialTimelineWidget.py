@@ -751,80 +751,86 @@ class TimelineView(QGraphicsView):
         return max_end
 
     def updateLayout(self):
-        scene_width = 2000
+        # Compute max end frame across all tracks
+        max_end_frame = 0
+        for track in self.controller.timelines:
+            for clip in track.clips:
+                end_frame = clip.start_frame + clip.duration_frames
+                if end_frame > max_end_frame:
+                    max_end_frame = end_frame
+        max_end_frame += 1  # optional padding
+
+        # Compute dynamic scene width (pixels) based on clips
+        dynamic_width = self.LEFT_MARGIN + max_end_frame * self.BASE_PIXELS_PER_FRAME * self.h_zoom
+
+        # Ensure minimum width of 2000
+        scene_width = max(2000, dynamic_width)
+
+        # Compute scene height
         y = self.TOP_MARGIN
         for track in self.controller.timelines:
             y += track.height * self.v_zoom + self.TRACK_SPACING
         scene_height = y + self.bottom_frame_offset
+
+        # Set scene rect
         self.scene_obj.setSceneRect(0, 0, scene_width, scene_height)
+
+        # Update static items
         self.timeLabelItem.setPos(0, 0)
         self.timeLabelItem.update()
         self.rulerItem.setPos(self.LEFT_MARGIN, 0)
         self.rulerItem.update()
-        ph_x = (
-            self.LEFT_MARGIN
-            + self.playhead_frame * self.BASE_PIXELS_PER_FRAME * self.h_zoom
-        )
+
+        ph_x = self.LEFT_MARGIN + self.playhead_frame * self.BASE_PIXELS_PER_FRAME * self.h_zoom
         self.playheadLineItem.setPos(ph_x, self.TOP_MARGIN)
         self.playheadLineItem.update()
         self.playheadTriangleItem.setPos(ph_x, 0)
         self.playheadTriangleItem.update()
+
         min_end = self.minimum_end_frame()
         self.end_frame = max(min_end + 24, 100)
-        end_x = (
-            self.LEFT_MARGIN 
-            + self.end_frame 
-            * self.BASE_PIXELS_PER_FRAME 
-            * self.h_zoom
-        )
+        end_x = self.LEFT_MARGIN + self.end_frame * self.BASE_PIXELS_PER_FRAME * self.h_zoom
         self.endLineItem.setPos(end_x, self.TOP_MARGIN)
         self.endLineItem.update()
+
+        # Remove old items
         for item in self.trackHeaderItems:
             self.scene_obj.removeItem(item)
-        self.trackHeaderItems = []
+        self.trackHeaderItems.clear()
         for item in self.trackLaneItems:
             self.scene_obj.removeItem(item)
-        self.trackLaneItems = []
+        self.trackLaneItems.clear()
         for item in self.clipItems:
             self.scene_obj.removeItem(item)
-        self.clipItems = []
+        self.clipItems.clear()
+
+        # Place tracks and clips
         current_y = self.TOP_MARGIN
         for track in self.controller.timelines:
             header = TrackHeaderItem(track, theme=self.theme)
             header.setPos(0, current_y)
             self.scene_obj.addItem(header)
             self.trackHeaderItems.append(header)
+
             lane = TrackLaneItem(track, theme=self.theme)
-            lane.setGeometry(
-                self.LEFT_MARGIN,
-                current_y,
-                scene_width - self.LEFT_MARGIN,
-                track.height * self.v_zoom,
-            )
+            lane.setGeometry(self.LEFT_MARGIN, current_y, scene_width - self.LEFT_MARGIN, track.height * self.v_zoom)
             self.scene_obj.addItem(lane)
             self.trackLaneItems.append(lane)
+
             for clip in track.clips:
-                clip_x = (
-                    self.LEFT_MARGIN
-                    + clip.start_frame 
-                    * self.BASE_PIXELS_PER_FRAME 
-                    * self.h_zoom
-                )
+                clip_x = self.LEFT_MARGIN + clip.start_frame * self.BASE_PIXELS_PER_FRAME * self.h_zoom
                 clip_y = current_y
-                clip_width = (
-                    # to account for the clip's right edge being time inclusive
-                    (clip.duration_frames * self.BASE_PIXELS_PER_FRAME)
-                    + self.BASE_PIXELS_PER_FRAME
-                ) * self.h_zoom
+                clip_width = clip.duration_frames * self.BASE_PIXELS_PER_FRAME * self.h_zoom
                 clip_height = track.height * self.v_zoom
                 clipItem = ClipItem(clip, track, theme=self.theme)
                 clipItem.setGeometry(clip_x, clip_y, clip_width, clip_height)
-                # Assigner le controller de redimensionnement si disponible
-                if hasattr(self, '_resize_controller') and self._resize_controller:
+                if hasattr(self, "_resize_controller") and self._resize_controller:
                     clipItem.set_resize_controller(self._resize_controller)
                 self.scene_obj.addItem(clipItem)
                 self.clipItems.append(clipItem)
+
             current_y += track.height * self.v_zoom + self.TRACK_SPACING
+
         self.viewport().update()
 
     def set_resize_controller(self, controller):
