@@ -7,7 +7,7 @@ from controller.TimelineController import TimelineController
 from model.Source import Source
 from model.Timeline import Timeline
 
-from model.TimelineClip import TimelineClip, TimelineVideoClip
+from model.TimelineClip import TimelineVideoClip
 
 from views.ChooseTrackDialog import ChooseTrackDialog
 

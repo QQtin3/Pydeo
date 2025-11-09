@@ -162,6 +162,9 @@ class VideoEditor(QMainWindow):
 
         tracka1 = Timeline("Audio 1", typee=TimelineType.AUDIO)
         tracka2 = Timeline("Audio 2", typee=TimelineType.AUDIO)
+        
+        trackv1.audioTimeline = tracka1
+        trackv2.audioTimeline = tracka2
 
         self.timelineController.timelines.append(trackv2)
         self.timelineController.timelines.append(trackv1)

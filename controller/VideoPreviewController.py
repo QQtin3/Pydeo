@@ -213,6 +213,8 @@ class VideoPreviewController(QObject):
                         # c.end = clip.end
                         # c.duration = c.end - c.start
                         
+                        audioClips.append(c.audio)
+                        
                         videoClips.append(c)
                         break
                     
