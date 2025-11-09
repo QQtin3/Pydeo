@@ -31,6 +31,8 @@ class TimelineVideoClip(TimelineClip):
             self.duration_frames = seconds_to_frames(self.videoClip.duration)
         else:
             self.duration_frames = duration_frame
+
+        self.effects = []
             
         
 class TimelineAudioClip(TimelineClip):
@@ -48,3 +50,5 @@ class TimelineAudioClip(TimelineClip):
             self.duration_frames = seconds_to_frames(self.audioClip.duration)
         else:
             self.duration_frames = duration_frame
+
+        self.effects = []
