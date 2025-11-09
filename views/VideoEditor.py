@@ -8,6 +8,7 @@ import sys
 import os
 
 from controller.VideoPreviewController import VideoPreviewController
+from model.Source import Source
 from model.Timeline import Timeline, TimelineType
 from model.TimelineClip import TimelineClip
 from .ClipDialog import ClipDialog
@@ -20,6 +21,7 @@ from .PlaybackControlsWidget import PlaybackControlsWidget
 from .ToolbarWidget import ToolbarWidget
 from .SourcesTabWidget import SourcesTabWidget
 
+from controller.FileHandlerController import readVideoFile
 from controller.SourceController import SourceController
 from controller.TimelineController import TimelineController
 
@@ -37,9 +39,6 @@ from .widgets.QtEditorialTimelineWidget import THEMES, TimelineView, TimelineWid
 # - TimelineWidget + PlayHead for basic timeline visualization
 # The code uses camelCase and includes comments for maintainability.
 class VideoEditor(QMainWindow):
-    sourceVideoPath: str | None
-    sourceVideo: VideoClip | None
-    tracks: list #TODO : à préciser ( => list[Object])
     clips: list[TimelineClip]
     currentPlayTime: float
     timelines: list[TimelineWidget] #TODO : à préciser ( => list[Object])
@@ -51,7 +50,6 @@ class VideoEditor(QMainWindow):
     currentTool: str
     timeline: TimelineWidget
     statusManager: StatusManager
-    playTimer: QTimer
     isPlaying: bool
 
     videoController: VideoPreviewController
@@ -60,9 +58,6 @@ class VideoEditor(QMainWindow):
         super().__init__()
         self.setWindowTitle("PyDEO - Éditeur Vidéo Simple")
         self.setGeometry(100, 100, 1200, 800)
-        self.sourceVideoPath = None
-        self.sourceVideo = None
-        self.tracks = []
         self.clips = []  # Store clip information for timeline
         self.currentPlayTime = 0
         self.timelines = []  # List to manage all timelines dynamically
@@ -88,7 +83,7 @@ class VideoEditor(QMainWindow):
         # Transport controls (modularized)
         self.playbackControls = PlaybackControlsWidget()
         # Wire playback control signals
-        self.playbackControls.playToggled.connect(lambda wantPlay: self.videoController.play() if wantPlay else self.videoController.pause())
+        self.playbackControls.playToggled.connect(self.updatePlayback)
         self.playbackControls.sliderPressed.connect(self.onSliderPressed)
         self.playbackControls.sliderReleased.connect(self.onSliderReleased)
         self.playbackControls.sliderMoved.connect(self.onSliderMoved)
@@ -133,7 +128,7 @@ class VideoEditor(QMainWindow):
         self.timeline = TimelineWidget("dark")
 
         # Tabs on the right side: Sources (custom widget) & Effects
-        self.timelineController = TimelineController(self.timeline.timeline_view)
+        self.timelineController = TimelineController(self)
         self.sourceController = SourceController()
         self.sourcesTab = SourcesTabWidget(self.timelineController, self.sourceController)
         self.sourcesTab.importRequested.connect(self.importVideo)
@@ -199,6 +194,7 @@ class VideoEditor(QMainWindow):
         mainLayout.addWidget(timelineContainer)
         mainLayout.addWidget(self.statusManager.status_label)
         
+        self.timeline.timeline_view.dragSignal.connect(self.onVideoTimeChanged)
         # Connect video preview signals
         self.videoController.timeChanged.connect(self.onVideoTimeChanged)
         self.videoController.durationChanged.connect(self.onVideoDurationChanged)
@@ -229,87 +225,85 @@ class VideoEditor(QMainWindow):
         )
         if not filePath:
             return
-        if self.videoController.loadVideo(filePath):
-            # Keep source references
-            self.sourceVideoPath = filePath
-            self.sourceVideo = self.videoController.clip
-
-            print(self.sourceVideo.duration)
+        
+        source = Source()
+        source.filepath = filePath
+        source.name = os.path.basename(source.filepath)
+        videoClip, audioClip, frame = readVideoFile(source)
 
             # Add to the Sources tab list
-            try:
-                duration = float(self.sourceVideo.duration)
-            except Exception:
-                duration = 0.0
-                print("default duration")
-            self.sourcesTab.addSourceItem(os.path.basename(self.sourceVideoPath or ""), duration, self.sourceVideoPath)
+        try:
+            duration = videoClip.duration
+        except Exception:
+            duration = 0.0
+        self.sourcesTab.addSourceItem(source.name, duration, source.filepath)
 
-            # Inform status bar; the rest of the UI (slider, play button)
-            # is updated via VideoPreviewController signals we connect below.
-            self.statusManager.update_status(f"État: Vidéo chargée - {os.path.basename(filePath)}")
-        else:
-            self.statusManager.update_status("Erreur: Impossible de charger la vidéo")
+        # Inform status bar; the rest of the UI (slider, play button)
+        # is updated via VideoPreviewController signals we connect below.
+        self.statusManager.update_status(f"État: Vidéo chargée - {os.path.basename(filePath)}")
     
-    def addTrack(self) -> None:
-        if not self.sourceVideo:
-            return
+    # def addTrack(self) -> None:
+    #     if not self.sourceVideo:
+    #         return
 
-        dialog = ClipDialog(self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            start, end = dialog.getValues()
+    #     dialog = ClipDialog(self)
+    #     if dialog.exec() == QDialog.DialogCode.Accepted:
+    #         start, end = dialog.getValues()
 
-            # Validate clip range
-            if end <= start:
-                self.statusManager.update_status("Erreur: La fin doit être après le début")
-                return
+    #         # Validate clip range
+    #         if end <= start:
+    #             self.statusManager.update_status("Erreur: La fin doit être après le début")
+    #             return
 
-            if end > self.sourceVideo.duration:
-                end = self.sourceVideo.duration
-                self.statusManager.update_status(f"Avertissement: Fin ajustée à la durée maximale ({self.sourceVideo.duration:.1f}s)")
+    #         if end > self.sourceVideo.duration:
+    #             end = self.sourceVideo.duration
+    #             self.statusManager.update_status(f"Avertissement: Fin ajustée à la durée maximale ({self.sourceVideo.duration:.1f}s)")
 
-            # Reflect in sources list (as a derived clip item)
-            baseName = os.path.basename(self.sourceVideoPath or "")
-            self.sourcesTab.addSourceItem(f"{baseName} [{start:.1f}s - {end:.1f}s]", end - start)
+    #         # Reflect in sources list (as a derived clip item)
+    #         baseName = os.path.basename(self.sourceVideoPath or "")
+    #         self.sourcesTab.addSourceItem(f"{baseName} [{start:.1f}s - {end:.1f}s]", end - start)
 
-            # Add to timeline model & view
-            self.clips.append(TimelineClip(baseName, start, end))
-            self.timeline.addClip(self.clips[-1])
+    #         # Add to timeline model & view
+    #         self.clips.append(TimelineClip(baseName, start, end))
+    #         self.timeline.addClip(self.clips[-1])
 
-            self.statusManager.update_status(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
+    #         self.statusManager.update_status(f"État: Clip ajouté à la piste [{start:.1f}s - {end:.1f}s]")
     
     def togglePlay(self) -> None:
-        if self.sourceVideo is None or not self.sourceVideo:
-            return
         self.videoController.togglePlayPause()
         
     
     # Legacy helper kept for reference; playback is driven by VideoPreviewController
-    def updatePlayback(self):
-        if not self.sourceVideo:
-            return
-
-        # Simulate time progression (would normally be driven by the controller)
-        self.currentPlayTime += 0.03  # ~30ms per tick
-        if self.currentPlayTime >= self.sourceVideo.duration:
-            self.currentPlayTime = 0
-            # Stop via controller to keep state consistent
+    def updatePlayback(self, wantPlay):
+        if wantPlay:
+            self.videoController.play()
+            self.timeline.timeline_view.startPlayback() 
+        else:
             self.videoController.pause()
-            self.isPlaying = False
+            self.timeline.timeline_view.stopPlayback() 
+    # def updatePlayback(self):
+    #     if not self.sourceVideo:
+    #         return
 
-        # Update UI via the modular controls
-        self.playbackControls.setPositionMs(int(self.currentPlayTime * 1000))
-        self.videoPreview.currentTime = self.currentPlayTime
-        self.timeline.setCurrentTime(self.currentPlayTime)
-        self.updateTimeDisplay()
+    #     # Simulate time progression (would normally be driven by the controller)
+    #     self.currentPlayTime += 0.03  # ~30ms per tick
+    #     if self.currentPlayTime >= self.sourceVideo.duration:
+    #         self.currentPlayTime = 0
+    #         # Stop via controller to keep state consistent
+    #         self.videoController.pause()
+    #         self.isPlaying = False
 
-        # In a complete implementation we would fetch and display the current frame.
+    #     # Update UI via the modular controls
+    #     self.playbackControls.setPositionMs(int(self.currentPlayTime * 1000))
+    #     self.videoPreview.currentTime = self.currentPlayTime
+    #     self.timeline.setCurrentTime(self.currentPlayTime)
+    #     self.updateTimeDisplay()
+
+    #     # In a complete implementation we would fetch and display the current frame.
     
     def updateTimeDisplay(self) -> None:
         """Refresh the time label in playback controls."""
-        if not self.sourceVideo:
-            self.playbackControls.setTimeLabel(0, 0)
-            return
-        self.playbackControls.setTimeLabel(self.currentPlayTime, self.sourceVideo.duration)
+        self.playbackControls.setTimeLabel(self.currentPlayTime, self.videoController.getDuration() / self.videoController.fps)
     
     def undo(self) -> None:
         self.statusManager.update_status("État: Action annulée")
@@ -319,16 +313,16 @@ class VideoEditor(QMainWindow):
         self.statusManager.update_status("État: Action refaite")
         # Implementation would redo previously undone actions
     
-    def addTimeline(self) -> TimelineWidget:
-        """Add a new timeline"""
-        newTimeline = TimelineWidget()
-        self.timelines.append(newTimeline)
+    # def addTimeline(self) -> TimelineWidget:
+    #     """Add a new timeline"""
+    #     newTimeline = TimelineWidget()
+    #     self.timelines.append(newTimeline)
         
-        # Update duration if video is loaded
-        if self.sourceVideo:
-            newTimeline.setDuration(self.sourceVideo.duration)
+    #     # Update duration if video is loaded
+    #     if self.sourceVideo:
+    #         newTimeline.setDuration(self.sourceVideo.duration)
         
-        return newTimeline
+    #     return newTimeline
 
     def exportVideo(self) -> None:
         if not self.clips:
@@ -352,16 +346,19 @@ class VideoEditor(QMainWindow):
     
     def onVideoTimeChanged(self, time):
         """Called when video time changes during playback"""
-        self.currentPlayTime = time
+        print(time)
+        self.currentPlayTime = time / self.videoController.fps
         # Update slider without causing feedback
-        self.playbackControls.setPositionMs(int(time * 1000))
+        self.playbackControls.setPositionMs(int(self.currentPlayTime * 1000))
+        self.timeline.timeline_view.updateFromPlayhead(time)
         #self.timeline.setCurrentTime(time)
         self.updateTimeDisplay()
 	
     def onVideoDurationChanged(self, duration):
         """Called when a new video is loaded"""
-        self.videoPreview.videoDuration = duration
-        self.playbackControls.setDurationMs(int(duration * 1000))
+        print(duration)
+        self.videoPreview.videoDuration = duration / self.videoController.fps
+        self.playbackControls.setDurationMs(int(self.videoPreview.videoDuration * 1000))
         # self.timeline.setDuration(duration)
         self.updateTimeDisplay()
 	
@@ -381,7 +378,8 @@ class VideoEditor(QMainWindow):
     def onSliderMoved(self, value):
         """Update video position as slider moves"""
         time = value / 1000.0
-        self.videoController.seek(time)
+        self.videoController.seek(time * 24)
+        self.timeline.timeline_view.updateFromPlayhead(time * 24)
 	
     def onSliderReleased(self):
         """Resume playback if it was playing before"""

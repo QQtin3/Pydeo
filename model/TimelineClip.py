@@ -9,6 +9,7 @@ class TimelineClip:
     title: str
     start_frame: int
     duration_frames: int
+    end: int
     source: Source
     
     def __init__(self, title: str, source: Source, start_frame: int):
@@ -22,15 +23,16 @@ class TimelineVideoClip(TimelineClip):
     fps: int
     effects: list[VideoEffect]
     
-    def __init__(self, name: str, source: Source, start_frame: int, duration_frame = -1):
+    def __init__(self, name: str, source: Source, start_frame: int, duration_frame = -1, fps = None):
         super().__init__(name, source, start_frame)
         
         self.videoClip, self.audioClip, self.fps = readVideoFile(source)
         
         if duration_frame < 0:
-            self.duration_frames = seconds_to_frames(self.videoClip.duration)
+            self.duration_frames = seconds_to_frames(self.videoClip.duration, fps or self.fps)
         else:
             self.duration_frames = duration_frame
+        self.end = self.start_frame + self.duration_frames
             
         
 class TimelineAudioClip(TimelineClip):
